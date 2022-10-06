@@ -5,6 +5,8 @@ mod windows;
 use yew::prelude::*;
 use copland::Copland;
 
+pub static MAX_BACKGROUND_INDEX: u32 = 18;
+
 #[function_component(App)]
 fn app() -> Html {
     html!{

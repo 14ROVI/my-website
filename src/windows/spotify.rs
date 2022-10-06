@@ -1,3 +1,4 @@
+use log::info;
 use yew::prelude::*;
 use gloo::net::websocket::{Message as WsMessage, futures::WebSocket};
 use wasm_bindgen_futures::spawn_local;
@@ -35,6 +36,9 @@ impl Component for Spotify {
         let (mut write, mut read) = ws.split();
         let (tx, mut rx) = futures::channel::mpsc::unbounded::<String>();
         
+        // TODO: reconnection handling incase of error
+        // TODO: serde structs rather than json!!!
+
         let on_lanyard_message = ctx.link().callback(Msg::LanyardMessage);
         spawn_local(async move {
             while let Some(Ok(msg)) = read.next().await {
@@ -46,7 +50,7 @@ impl Component for Spotify {
         spawn_local(async move {
             while let Some(msg) = rx.next().await {
                 log::info!("sent {}", &msg);
-                write.send(WsMessage::Text(msg)).await.unwrap_or(());
+                write.send(WsMessage::Text(msg)).await.unwrap();
             }
         });
 
