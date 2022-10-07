@@ -1,9 +1,18 @@
+use std::fmt::Write as _; 
 use std::fmt;
-use yew::{Component, Context, Html, html, Properties, use_context};
+use yew::{Html, html};
 use yew::html::Scope;
 
 use crate::copland::{Copland, CoplandMsg};
-use crate::windows::Spotify;
+use crate::windows::{Spotify, Home, AboutMe};
+
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum WindowPosition {
+    Close(i32),
+    Half,
+    Far,
+}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum WindowState {
@@ -50,8 +59,8 @@ pub struct Window {
     pub id: WindowId,
     pub state: WindowState,
     pub close: WindowClose,
-    pub top: i32,
-    pub left: i32,
+    pub top: WindowPosition,
+    pub left: WindowPosition,
     pub width: u32,
     pub icon: String,
     pub title: String,
@@ -59,36 +68,36 @@ pub struct Window {
 }
 impl Window {
     pub fn home(link: &Scope<Copland>) -> Self {
-        let open_spotify = {
-            link.callback(|_| CoplandMsg::OpenWindow(Self::spotify()))
-        };
+        let open_spotify = link.callback(|_| CoplandMsg::OpenWindow(Self::spotify()));
+        let open_about_me = link.callback(|_| CoplandMsg::OpenWindow(Self::about_me()));
 
         Window {
             id: WindowId::Home,
             state: WindowState::Open,
             close: WindowClose::Invalid,
-            top: 0,
-            left: 0,
+            top: WindowPosition::Half,
+            left: WindowPosition::Half,
             width: 400,
             icon: "assets/icons/computer_explorer-5.png".to_string(),
             title: "Home".to_string(),
             body: html!{
-                <>
-                    <h4>{ "Welcome" }</h4>
-                    <p>{ "In short this is a nice little display of what I can code. This website is written in Rust and uses WASM and Yew." }</p>
-                    <p>{ "Check out other windows listed below: " }</p>
-                    <ul>
-                        <li><a href="javascript:void(0);" onclick={open_spotify}>{ "See what I'm listening to on Spotify!" }</a></li>
-                        <li>{ "link to open about me" }</li>
-                        <li>{ "link to open the background selector" }</li>
-                        <li>{ "link to open a display of other projects" }</li>
-                    </ul>
-                    <br/>
-                    <div class="status-bar">
-                        <p class="status-bar-field">{ "Created by Roan Vickerman" }</p>
-                        <p class="status-bar-field"><a target="_blank" href="https://github.com/14ROVI/my-website">{ "This website's repo" }</a></p>
-                    </div>
-                </>
+                <Home {open_spotify} {open_about_me}></Home>
+            }
+        }
+    }
+
+    pub fn about_me() -> Self {
+        Window {
+            id: WindowId::AboutMe,
+            state: WindowState::Open,
+            close: WindowClose::Close,
+            top: WindowPosition::Half,
+            left: WindowPosition::Half,
+            width: 300,
+            icon: "assets/icons/msg_information-0.png".to_string(),
+            title: "About Me".to_string(),
+            body: html!{
+                <AboutMe></AboutMe>
             }
         }
     }
@@ -98,8 +107,8 @@ impl Window {
             id: WindowId::Spotify,
             state: WindowState::Open,
             close: WindowClose::Hide,
-            top: 0,
-            left: 0,
+            top: WindowPosition::Close(0),
+            left: WindowPosition::Far,
             width: 300,
             icon: "assets/icons/spotify.svg".to_string(),
             title: "Spotify".to_string(),
@@ -116,14 +125,30 @@ impl Window {
         let style = match self.state {
             WindowState::Maximised => "top: 0px; left: 0px; width: 100%; height: 100%;".to_string(),
             WindowState::Minimised(_) | WindowState::Hidden => "display: none;".to_string(),
-            _ => format!("top: {}px; left: {}px; width: {}px;", self.top, self.left, self.width)
+            _ => {
+                let mut style = format!("width: {}px;", self.width);
+                match self.left {
+                    WindowPosition::Close(x) => {write!(style, "left: {}px;", x).ok();},
+                    WindowPosition::Half => style.push_str("left: 50%; transform: translateX(-50%);"),
+                    WindowPosition::Far => style.push_str("right: 0px;"),
+                };
+                match self.top {
+                    WindowPosition::Close(y) => {write!(style, "top: {}px;", y).ok();},
+                    WindowPosition::Half => style.push_str("top: 50%; transform: translateY(-50%);"),
+                    WindowPosition::Far => style.push_str("bottom: 0px;"),
+                };
+                if self.left == WindowPosition::Half && self.top == WindowPosition::Half {
+                    style.push_str("transform: translateY(-50%) translateX(-50%);");
+                }
+                style
+            }
         };
 
         html! {
             <div
                 key={key.clone()}
                 id={key.clone()}
-                class="window window-base"
+                class="window"
                 style={style}
                 onmousedown={link.callback(move |_| CoplandMsg::FocusWindow(id))}
             >

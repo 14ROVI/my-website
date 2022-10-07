@@ -1,4 +1,3 @@
-use log::info;
 use yew::prelude::*;
 use gloo::net::websocket::{Message as WsMessage, futures::WebSocket};
 use wasm_bindgen_futures::spawn_local;

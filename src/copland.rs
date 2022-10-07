@@ -6,10 +6,16 @@ use gloo::events::EventListener;
 use gloo::utils::{window as browser_window, document};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, Element};
-use crate::window::{Window, WindowState, WindowId, WindowClose};
+use crate::window::{Window, WindowState, WindowId, WindowClose, WindowPosition};
 use crate::MAX_BACKGROUND_INDEX;
 use rand::Rng;
 
+
+
+enum MoveEvent {
+    MouseEvent(MouseEvent),
+    TouchEvent(TouchEvent)
+}
 
 
 #[derive(Debug)]
@@ -35,6 +41,8 @@ pub struct Copland {
     mouse_offset_y: i32,
     mouse_move_listener: Option<EventListener>,
     mouse_up_listener: Option<EventListener>,
+    touch_move_listener: Option<EventListener>,
+    touch_up_listener: Option<EventListener>,
 }
 impl Copland {
     fn view_taskbar_button(&self, window: &Window, link: &Scope<Self>) -> Html {
@@ -133,8 +141,12 @@ impl Component for Copland {
                     let max_x = window_width - window.width as i32;
                     let max_y =  window_height - height;
 
-                    window.left = window.left.min(max_x).max(0);
-                    window.top = window.top.min(max_y).max(0);
+                    if let WindowPosition::Close(x) = window.left {
+                        window.left = WindowPosition::Close(x.min(max_x).max(0));
+                    }
+                    if let WindowPosition::Close(y) = window.top {
+                        window.top = WindowPosition::Close(y.min(max_y).max(0));
+                    }
                 }
                 true
             },
@@ -158,14 +170,17 @@ impl Component for Copland {
                     if let Some(window) = self.windows.get(index) {
                         if window.state != WindowState::Maximised {
 
-                            // e.prevent_default();
+                            e.prevent_default();
                             
                             if !e.target()
                             .and_then(|t| t.dyn_into::<HtmlElement>().ok())
                             .map_or(false, |t| t.tag_name() == "BUTTON") {
-                            
-                                self.mouse_offset_x = window.left - e.client_x();
-                                self.mouse_offset_y = window.top - e.client_y();
+                                
+                                if let Some(window_el) = document().get_element_by_id(&format!("window-{}", window_id)) {
+                                    let rec = window_el.get_bounding_client_rect();
+                                    self.mouse_offset_x = rec.left() as i32 - e.client_x();
+                                    self.mouse_offset_y = rec.top() as i32 - e.client_y();
+                                }
 
                                 let on_mouse_move = ctx.link().callback(move |e| CoplandMsg::DragWindowMove(window_id, e));
                                 let listener = EventListener::new(
@@ -202,8 +217,8 @@ impl Component for Copland {
                                 let max_x = window_area.client_width() - window.width as i32;
                                 let max_y = window_area.client_height() - window_height;
 
-                                window.left = (e.client_x() + self.mouse_offset_x).min(max_x).max(0);
-                                window.top = (e.client_y() + self.mouse_offset_y).min(max_y).max(0);
+                                window.left = WindowPosition::Close((e.client_x() + self.mouse_offset_x).min(max_x).max(0));
+                                window.top = WindowPosition::Close((e.client_y() + self.mouse_offset_y).min(max_y).max(0));
 
                                 return true;
                             }

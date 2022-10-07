@@ -1,7 +1,8 @@
-// mod introduction;
-mod spotify;
-// mod home;
+mod home;
+pub use home::Home;
 
-// pub use introduction::Introduction;
+mod spotify;
 pub use spotify::Spotify;
-// pub use home::Home;
+
+mod about_me;
+pub use about_me::AboutMe;
