@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use yew::prelude::*;
 use yew::html::Scope;
 use yew::NodeRef;
@@ -29,20 +31,22 @@ pub enum CoplandMsg {
     MinimiseWindow(WindowId),
     MaximiseWindow(WindowId),
     RestoreWindow(WindowId),
-    ResizeBrowser
+    ResizeBrowser,
+    IncrementBackground,
+    DecrementBackground,
 }
 
 pub struct Copland {
-    windows: Vec<Window>,
-    taskbar_order_ref: Vec<WindowId>,
+    windows: HashMap<WindowId, Window>,
+    max_z_index: u32,
     background: u32,
     window_area: NodeRef,
     mouse_offset_x: i32,
     mouse_offset_y: i32,
     mouse_move_listener: Option<EventListener>,
     mouse_up_listener: Option<EventListener>,
-    touch_move_listener: Option<EventListener>,
-    touch_up_listener: Option<EventListener>,
+    // touch_move_listener: Option<EventListener>,
+    // touch_up_listener: Option<EventListener>,
 }
 impl Copland {
     fn view_taskbar_button(&self, window: &Window, link: &Scope<Self>) -> Html {
@@ -89,17 +93,21 @@ impl Component for Copland {
         });
         listener.forget();
 
-        let windows = vec![
-            Window::home(ctx.link())
-        ];
-        let taskbar_order_ref = windows.iter().map(|w| w.id).collect::<Vec<WindowId>>();
+        // TODO: move back to z index because changing div order interrupts things with events
 
         let mut rng = rand::thread_rng();
         let background = rng.gen_range(1..MAX_BACKGROUND_INDEX);
 
+        let bcopy = background as u32;
+        let windows = vec![
+            Window::home(ctx.link(), bcopy)
+        ];
+        let windows: HashMap<WindowId, Window> = windows.into_iter().map(|w| (w.id, w)).collect();
+        let max_z_index = windows.len().try_into().unwrap();
+
         Self {
             windows,
-            taskbar_order_ref,
+            max_z_index,
             window_area: NodeRef::default(),
             mouse_offset_x: 0,
             mouse_offset_y: 0,
@@ -111,13 +119,28 @@ impl Component for Copland {
 
     fn update(&mut self, ctx: &Context<Self>, copland_msg: Self::Message) -> bool {
         match copland_msg {
+            CoplandMsg::IncrementBackground => {
+                self.background = if self.background + 1 > MAX_BACKGROUND_INDEX {
+                    0
+                } else {
+                    self.background + 1
+                };
+                true
+            },
+            CoplandMsg::DecrementBackground => {
+                self.background = if self.background == 0 {
+                    MAX_BACKGROUND_INDEX
+                } else {
+                    self.background - 1
+                };
+                true
+            },
             CoplandMsg::OpenWindow(window) => {
                 log::info!("opening window");
-                if self.windows.iter().any(|w| w.id == window.id) {
+                if self.windows.contains_key(&window.id) {
                     ctx.link().send_message(CoplandMsg::FocusWindow(window.id));
                 } else {
-                    self.taskbar_order_ref.push(window.id);
-                    self.windows.push(window);
+                    self.windows.insert(window.id, window);
                 }
                 true
             },
@@ -133,7 +156,7 @@ impl Component for Copland {
                     .map(|h| h as i32)
                     .unwrap_or_default();
 
-                for window in self.windows.iter_mut() {
+                for window in self.windows.values_mut() {
                     let dragged_element = document().get_element_by_id(&format!("window-{}", window.id));
                     if dragged_element.is_none() { return false; }
                     let height = dragged_element.as_ref().map(|e| e.client_height()).unwrap_or_default();
@@ -152,56 +175,59 @@ impl Component for Copland {
             },
             CoplandMsg::FocusWindow(window_id) => {
                 log::info!("focusing window");
-                if let Some(index) = self.windows.iter().position(|w| w.id == window_id) {
-                    let mut window = self.windows.remove(index);
+
+                if let Some(window) = self.windows.get_mut(&window_id) {
                     window.state = match window.state {
                         WindowState::Maximised => WindowState::Maximised,
                         WindowState::Minimised(true) => WindowState::Maximised,
                         _ => WindowState::Open,
                     };
-                    self.windows.push(window);
+
+                    self.max_z_index += 1;
+                    window.z_index = self.max_z_index;
                 }
                 true
             },
             CoplandMsg::DragWindowStart(window_id, e) => {
                 log::info!("started dragging window");
                 
-                if let Some(index) = self.windows.iter().position(|w| w.id == window_id) {
-                    if let Some(window) = self.windows.get(index) {
-                        if window.state != WindowState::Maximised {
-
-                            e.prevent_default();
-                            
-                            if !e.target()
+                if let Some(window) = self.windows.get_mut(&window_id) {
+                    if window.state != WindowState::Maximised {
+                        if !e.target()
                             .and_then(|t| t.dyn_into::<HtmlElement>().ok())
                             .map_or(false, |t| t.tag_name() == "BUTTON") {
-                                
-                                if let Some(window_el) = document().get_element_by_id(&format!("window-{}", window_id)) {
-                                    let rec = window_el.get_bounding_client_rect();
-                                    self.mouse_offset_x = rec.left() as i32 - e.client_x();
-                                    self.mouse_offset_y = rec.top() as i32 - e.client_y();
-                                }
+                            
+                            e.prevent_default();
 
-                                let on_mouse_move = ctx.link().callback(move |e| CoplandMsg::DragWindowMove(window_id, e));
-                                let listener = EventListener::new(
-                                    &browser_window(), 
-                                    "mousemove",
-                                    move |e| {
-                                    let event = e.dyn_ref::<MouseEvent>().unwrap();
-                                    on_mouse_move.emit(event.clone());
-                                });
-                                self.mouse_move_listener = Some(listener);
-
-                                let on_mouse_up = ctx.link().callback(move |e| CoplandMsg::DragWindowEnd(window_id, e));
-                                let listener = EventListener::new(
-                                    &browser_window(), 
-                                    "mouseup",
-                                    move |e| {
-                                    let event = e.dyn_ref::<MouseEvent>().unwrap();
-                                    on_mouse_up.emit(event.clone());
-                                });
-                                self.mouse_up_listener = Some(listener);
+                            if let Some(window_el) = document().get_element_by_id(&format!("window-{}", window_id)) {
+                                let rec = window_el.get_bounding_client_rect();
+                                self.mouse_offset_x = rec.left() as i32 - e.client_x();
+                                self.mouse_offset_y = rec.top() as i32 - e.client_y();
                             }
+
+                            let on_mouse_move = ctx.link().callback(move |e| CoplandMsg::DragWindowMove(window_id, e));
+                            let listener = EventListener::new(
+                                &browser_window(), 
+                                "mousemove",
+                                move |e| {
+                                let event = e.dyn_ref::<MouseEvent>().unwrap();
+                                on_mouse_move.emit(event.clone());
+                            });
+                            self.mouse_move_listener = Some(listener);
+
+                            let on_mouse_up = ctx.link().callback(move |e| CoplandMsg::DragWindowEnd(window_id, e));
+                            let listener = EventListener::new(
+                                &browser_window(), 
+                                "mouseup",
+                                move |e| {
+                                let event = e.dyn_ref::<MouseEvent>().unwrap();
+                                on_mouse_up.emit(event.clone());
+                            });
+                            self.mouse_up_listener = Some(listener);
+
+                            return true;
+                        } else {
+                            e.prevent_default();
                         }
                     }
                 }
@@ -209,19 +235,17 @@ impl Component for Copland {
             },
             CoplandMsg::DragWindowMove(window_id, e) => {
                 log::info!("dragging window");
-                if let Some(index) = self.windows.iter().position(|w| w.id == window_id) {
-                    if let Some(window) = self.windows.get_mut(index) {
-                        if let Some(window_el) = document().get_element_by_id(&format!("window-{}", window_id)) {
-                            let window_height = window_el.client_height();
-                            if let Some(window_area) = self.window_area.cast::<Element>() {
-                                let max_x = window_area.client_width() - window.width as i32;
-                                let max_y = window_area.client_height() - window_height;
+                if let Some(window) = self.windows.get_mut(&window_id) {
+                    if let Some(window_el) = document().get_element_by_id(&format!("window-{}", window_id)) {
+                        let window_height = window_el.client_height();
+                        if let Some(window_area) = self.window_area.cast::<Element>() {
+                            let max_x = window_area.client_width() - window.width as i32;
+                            let max_y = window_area.client_height() - window_height;
 
-                                window.left = WindowPosition::Close((e.client_x() + self.mouse_offset_x).min(max_x).max(0));
-                                window.top = WindowPosition::Close((e.client_y() + self.mouse_offset_y).min(max_y).max(0));
+                            window.left = WindowPosition::Close((e.client_x() + self.mouse_offset_x).min(max_x).max(0));
+                            window.top = WindowPosition::Close((e.client_y() + self.mouse_offset_y).min(max_y).max(0));
 
-                                return true;
-                            }
+                            return true;
                         }
                     }
                 }
@@ -235,7 +259,7 @@ impl Component for Copland {
             },
             CoplandMsg::MinimiseWindow(window_id) => {
                 log::info!("minimising window");
-                self.windows.iter_mut().position(|w| {
+                self.windows.iter_mut(|w_id, w| {
                     if w.id == window_id {
                         w.state = WindowState::Minimised(w.state == WindowState::Maximised);
                         true

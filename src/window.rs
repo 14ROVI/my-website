@@ -4,7 +4,7 @@ use yew::{Html, html};
 use yew::html::Scope;
 
 use crate::copland::{Copland, CoplandMsg};
-use crate::windows::{Spotify, Home, AboutMe};
+use crate::windows::{Spotify, Home, AboutMe, BackgroundSelector};
 
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -22,7 +22,7 @@ pub enum WindowState {
     Maximised
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum WindowId {
     Home,
     Spotify,
@@ -59,6 +59,7 @@ pub struct Window {
     pub id: WindowId,
     pub state: WindowState,
     pub close: WindowClose,
+    pub z_index: u32,
     pub top: WindowPosition,
     pub left: WindowPosition,
     pub width: u32,
@@ -67,21 +68,24 @@ pub struct Window {
     pub body: Html
 }
 impl Window {
-    pub fn home(link: &Scope<Copland>) -> Self {
+    pub fn home(link: &Scope<Copland>, background: u32) -> Self {
         let open_spotify = link.callback(|_| CoplandMsg::OpenWindow(Self::spotify()));
         let open_about_me = link.callback(|_| CoplandMsg::OpenWindow(Self::about_me()));
+        let linkc = link.clone();
+        let open_background = link.callback(move |_| CoplandMsg::OpenWindow(Self::background_selector(&linkc, background)));
 
         Window {
             id: WindowId::Home,
             state: WindowState::Open,
             close: WindowClose::Invalid,
+            z_index: 0,
             top: WindowPosition::Half,
             left: WindowPosition::Half,
             width: 400,
             icon: "assets/icons/computer_explorer-5.png".to_string(),
             title: "Home".to_string(),
             body: html!{
-                <Home {open_spotify} {open_about_me}></Home>
+                <Home {open_background} {open_spotify} {open_about_me}></Home>
             }
         }
     }
@@ -91,6 +95,7 @@ impl Window {
             id: WindowId::AboutMe,
             state: WindowState::Open,
             close: WindowClose::Close,
+            z_index: 0,
             top: WindowPosition::Half,
             left: WindowPosition::Half,
             width: 300,
@@ -107,6 +112,7 @@ impl Window {
             id: WindowId::Spotify,
             state: WindowState::Open,
             close: WindowClose::Hide,
+            z_index: 0,
             top: WindowPosition::Close(0),
             left: WindowPosition::Far,
             width: 300,
@@ -119,10 +125,31 @@ impl Window {
     }
 
 
+    pub fn background_selector(link: &Scope<Copland>, background: u32) -> Self {
+        let increment = link.callback(|_| CoplandMsg::IncrementBackground);
+        let decrement = link.callback(|_| CoplandMsg::DecrementBackground);
+
+        Window {
+            id: WindowId::BackgroundSelector,
+            state: WindowState::Open,
+            close: WindowClose::Close,
+            z_index: 0,
+            top: WindowPosition::Close(0),
+            left: WindowPosition::Close(0),
+            width: 300,
+            icon: "assets/icons/spotify.svg".to_string(),
+            title: "Select Background".to_string(),
+            body: html!{
+                <BackgroundSelector {background} {increment} {decrement}></BackgroundSelector>
+            }
+        }
+    }
+
+
     pub fn view(&self, link: &Scope<Copland>) -> Html {
         let id = self.id;
         let key = format!("window-{}", self.id);
-        let style = match self.state {
+        let mut style = match self.state {
             WindowState::Maximised => "top: 0px; left: 0px; width: 100%; height: 100%;".to_string(),
             WindowState::Minimised(_) | WindowState::Hidden => "display: none;".to_string(),
             _ => {
@@ -143,6 +170,7 @@ impl Window {
                 style
             }
         };
+        style.push_str(&format!("z-index: {};", self.z_index));
 
         html! {
             <div
@@ -150,7 +178,7 @@ impl Window {
                 id={key.clone()}
                 class="window"
                 style={style}
-                onmousedown={link.callback(move |_| CoplandMsg::FocusWindow(id))}
+                onclick={link.callback(move |_| CoplandMsg::FocusWindow(id))}
             >
                 <div
                     class={"title-bar"}
