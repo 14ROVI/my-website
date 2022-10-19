@@ -1,6 +1,7 @@
 use std::fmt::Write as _; 
 use std::fmt;
-use yew::{Html, html};
+use std::ops::Deref;
+use yew::{Html, html, classes};
 use yew::html::Scope;
 
 use crate::copland::{Copland, CoplandMsg};
@@ -146,7 +147,7 @@ impl Window {
     }
 
 
-    pub fn view(&self, link: &Scope<Copland>) -> Html {
+    pub fn view(&self, link: &Scope<Copland>, copland: &Copland) -> Html {
         let id = self.id;
         let key = format!("window-{}", self.id);
         let mut style = match self.state {
@@ -172,16 +173,22 @@ impl Window {
         };
         style.push_str(&format!("z-index: {};", self.z_index));
 
+        let mut focused_class = vec!["title-bar"];
+
+        if self.id != copland.focused_window {
+            focused_class.push("inactive");
+        }
+
         html! {
             <div
                 key={key.clone()}
                 id={key.clone()}
                 class="window"
                 style={style}
-                onclick={link.callback(move |_| CoplandMsg::FocusWindow(id))}
+                onmousedown={link.callback(move |_| CoplandMsg::FocusWindow(id))}
             >
                 <div
-                    class={"title-bar"}
+                    class={classes!(focused_class)}
                     onmousedown={link.callback(move |e| CoplandMsg::DragWindowStart(id, e))}
                 >
                     <div class="title-bar-text-icon">

@@ -39,6 +39,7 @@ pub enum CoplandMsg {
 pub struct Copland {
     windows: HashMap<WindowId, Window>,
     max_z_index: u32,
+    pub focused_window: WindowId,
     background: u32,
     window_area: NodeRef,
     mouse_offset_x: i32,
@@ -61,7 +62,7 @@ impl Copland {
 
         let mut focused = None;
         let mut onclick = link.callback(move |_| CoplandMsg::FocusWindow(window_id));
-        if (window.state == WindowState::Open || window.state == WindowState::Maximised) && self.windows.last().map(|w| w.id) == Some(window.id) {
+        if (window.state == WindowState::Open || window.state == WindowState::Maximised) && self.focused_window == window.id {
             focused = Some("taskbar-button-active");
             onclick = link.callback(move |_| CoplandMsg::MinimiseWindow(window_id));
         }
@@ -108,6 +109,7 @@ impl Component for Copland {
         Self {
             windows,
             max_z_index,
+            focused_window: WindowId::Home,
             window_area: NodeRef::default(),
             mouse_offset_x: 0,
             mouse_offset_y: 0,
@@ -120,11 +122,7 @@ impl Component for Copland {
     fn update(&mut self, ctx: &Context<Self>, copland_msg: Self::Message) -> bool {
         match copland_msg {
             CoplandMsg::IncrementBackground => {
-                self.background = if self.background + 1 > MAX_BACKGROUND_INDEX {
-                    0
-                } else {
-                    self.background + 1
-                };
+                self.background = (self.background + 1) % MAX_BACKGROUND_INDEX;
                 true
             },
             CoplandMsg::DecrementBackground => {
@@ -137,11 +135,9 @@ impl Component for Copland {
             },
             CoplandMsg::OpenWindow(window) => {
                 log::info!("opening window");
-                if self.windows.contains_key(&window.id) {
-                    ctx.link().send_message(CoplandMsg::FocusWindow(window.id));
-                } else {
-                    self.windows.insert(window.id, window);
-                }
+                let window_id = window.id;
+                self.windows.entry(window_id).or_insert( window);
+                ctx.link().send_message(CoplandMsg::FocusWindow(window_id));
                 true
             },
             CoplandMsg::ResizeBrowser => {
@@ -182,7 +178,7 @@ impl Component for Copland {
                         WindowState::Minimised(true) => WindowState::Maximised,
                         _ => WindowState::Open,
                     };
-
+                    self.focused_window = window.id;
                     self.max_z_index += 1;
                     window.z_index = self.max_z_index;
                 }
@@ -259,52 +255,42 @@ impl Component for Copland {
             },
             CoplandMsg::MinimiseWindow(window_id) => {
                 log::info!("minimising window");
-                self.windows.iter_mut(|w_id, w| {
-                    if w.id == window_id {
-                        w.state = WindowState::Minimised(w.state == WindowState::Maximised);
-                        true
-                    } else {
-                        false
-                    }
-                });
-                true
+                if let Some(window) = self.windows.get_mut(&window_id) {
+                    window.state = WindowState::Minimised(
+                        window.state == WindowState::Maximised
+                    );
+                    true
+                } else {
+                    false
+                }
             },
             CoplandMsg::MaximiseWindow(window_id) => {
                 log::info!("maximising window");
-                self.windows.iter_mut().position(|w| {
-                    if w.id == window_id {
-                        w.state = WindowState::Maximised;
-                        true
-                    } else {
-                        false
-                    }
-                });
-                true
+                if let Some(window) = self.windows.get_mut(&window_id) {
+                    window.state = WindowState::Maximised;
+                    true
+                } else {
+                    false
+                }
             },
             CoplandMsg::RestoreWindow(window_id) => {
                 log::info!("restoring window");
-                self.windows.iter_mut().position(|w| {
-                    if w.id == window_id {
-                        w.state = WindowState::Open;
-                        true
-                    } else {
-                        false
-                    }
-                });
-                true
+                if let Some(window) = self.windows.get_mut(&window_id) {
+                    window.state = WindowState::Open;
+                    true
+                } else {
+                    false
+                }
             },
             CoplandMsg::CloseWindow(window_id) => {
                 log::info!("closing window");
-                if let Some(index) = self.windows.iter().position(|w| w.id == window_id) {
-                    if let Some(window) = self.windows.get_mut(index) {
-                        match window.close {
-                            WindowClose::Close => {
-                                self.windows.remove(index);
-                                self.taskbar_order_ref.retain(|wid| *wid != window_id);
-                            },
-                            WindowClose::Hide => window.state = WindowState::Hidden,
-                            WindowClose::Invalid => (),
-                        };
+                if let Some(window) = self.windows.get_mut(&window_id) {
+                    match window.close {
+                        WindowClose::Close => {
+                            self.windows.remove(&window_id);
+                        },
+                        WindowClose::Hide => window.state = WindowState::Hidden,
+                        WindowClose::Invalid => (),
                     }
                 }
                 true
@@ -313,21 +299,22 @@ impl Component for Copland {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let mut sorted_windows = self.windows.to_vec();
-        sorted_windows.sort_by_key(|w| self.taskbar_order_ref.iter().position(|wid| *wid==w.id).unwrap());
-
         html! {
             <div id="copland" class="copland">
-                <div id="window-area" class="window-area" ref={self.window_area.clone()} style={format!("background-image: url(assets/backgrounds/{}.gif)", self.background)}>
+                <div id="window-area"
+                    class="window-area"
+                    ref={self.window_area.clone()}
+                    style={format!("background-image: url(assets/backgrounds/{}.gif)", self.background)}
+                >
                     {
-                        self.windows.iter().map(|window| {
-                            window.view(ctx.link())
+                        self.windows.values().map(|window| {
+                            window.view(ctx.link(), self)
                         }).collect::<Html>()
                     }
                 </div>
                 <div id="taskbar" class="taskbar">
                     {
-                        sorted_windows.iter().map(|window| {
+                        self.windows.values().map(|window| {
                             self.view_taskbar_button(window, ctx.link())
                         }).collect::<Html>()
                     }

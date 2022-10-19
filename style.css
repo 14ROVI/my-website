@@ -28,9 +28,6 @@ img {
     background-size: cover;
     background-color: #023020;
 }
-.window-area > div:not(:last-child) > div:first-child {
-    background: linear-gradient(90deg,grey,#b5b5b5);
-}
 .taskbar {
     z-index: 10000;
     padding: 2px;
