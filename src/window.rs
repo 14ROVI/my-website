@@ -1,6 +1,5 @@
 use std::fmt::Write as _; 
 use std::fmt;
-use std::ops::Deref;
 use yew::{Html, html, classes};
 use yew::html::Scope;
 
