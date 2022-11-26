@@ -23,7 +23,7 @@ pub enum WindowState {
     Maximised
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord)]
 pub enum WindowId {
     Home,
     Spotify,

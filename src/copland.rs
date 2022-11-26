@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use yew::prelude::*;
 use yew::html::Scope;
@@ -37,7 +37,7 @@ pub enum CoplandMsg {
 }
 
 pub struct Copland {
-    windows: HashMap<WindowId, Window>,
+    windows: BTreeMap<WindowId, Window>,
     max_z_index: u32,
     pub focused_window: WindowId,
     background: u32,
@@ -94,8 +94,6 @@ impl Component for Copland {
         });
         listener.forget();
 
-        // TODO: move back to z index because changing div order interrupts things with events
-
         let mut rng = rand::thread_rng();
         let background = rng.gen_range(1..MAX_BACKGROUND_INDEX);
 
@@ -103,7 +101,7 @@ impl Component for Copland {
         let windows = vec![
             Window::home(ctx.link(), bcopy)
         ];
-        let windows: HashMap<WindowId, Window> = windows.into_iter().map(|w| (w.id, w)).collect();
+        let windows: BTreeMap<WindowId, Window> = windows.into_iter().map(|w| (w.id, w)).collect();
         let max_z_index = windows.len().try_into().unwrap();
 
         Self {
@@ -122,12 +120,16 @@ impl Component for Copland {
     fn update(&mut self, ctx: &Context<Self>, copland_msg: Self::Message) -> bool {
         match copland_msg {
             CoplandMsg::IncrementBackground => {
-                self.background = (self.background + 1) % MAX_BACKGROUND_INDEX;
+                self.background = if self.background + 1 == MAX_BACKGROUND_INDEX {
+                    0
+                } else {
+                    self.background + 1
+                };
                 true
             },
             CoplandMsg::DecrementBackground => {
                 self.background = if self.background == 0 {
-                    MAX_BACKGROUND_INDEX
+                    MAX_BACKGROUND_INDEX - 1
                 } else {
                     self.background - 1
                 };
