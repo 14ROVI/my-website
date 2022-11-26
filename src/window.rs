@@ -69,11 +69,10 @@ pub struct Window {
     pub body: Html
 }
 impl Window {
-    pub fn home(link: &Scope<Copland>, background: u32) -> Self {
+    pub fn home(link: &Scope<Copland>) -> Self {
         let open_spotify = link.callback(|_| CoplandMsg::OpenWindow(Self::spotify()));
         let open_about_me = link.callback(|_| CoplandMsg::OpenWindow(Self::about_me()));
-        let linkc = link.clone();
-        let open_background = link.callback(move |_| CoplandMsg::OpenWindow(Self::background_selector(&linkc, background)));
+        let open_background = link.callback(move |_| CoplandMsg::OpenWindow(Self::background_selector()));
 
         Window {
             id: WindowId::Home,
@@ -126,10 +125,7 @@ impl Window {
     }
 
 
-    pub fn background_selector(link: &Scope<Copland>, background: u32) -> Self {
-        let increment = link.callback(|_| CoplandMsg::IncrementBackground);
-        let decrement = link.callback(|_| CoplandMsg::DecrementBackground);
-
+    pub fn background_selector() -> Self {
         Window {
             id: WindowId::BackgroundSelector,
             state: WindowState::Open,
@@ -141,7 +137,7 @@ impl Window {
             icon: "assets/icons/spotify.svg".to_string(),
             title: "Select Background".to_string(),
             body: html!{
-                <BackgroundSelector {background} {increment} {decrement}></BackgroundSelector>
+                <BackgroundSelector></BackgroundSelector>
             }
         }
     }
@@ -171,7 +167,7 @@ impl Window {
                 style
             }
         };
-        style.push_str(&format!("z-index: {};", self.z_index));
+        write!(style, "z-index: {};", self.z_index).ok();
 
         let mut focused_class = vec!["title-bar"];
 
