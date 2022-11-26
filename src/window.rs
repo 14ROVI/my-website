@@ -134,7 +134,7 @@ impl Window {
             top: WindowPosition::Close(0),
             left: WindowPosition::Close(0),
             width: 300,
-            icon: "assets/icons/spotify.svg".to_string(),
+            icon: "assets/icons/kodak_imaging-0.png".to_string(),
             title: "Select Background".to_string(),
             body: html!{
                 <BackgroundSelector></BackgroundSelector>
