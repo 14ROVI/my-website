@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use yew::context::ContextHandle;
 use yew::prelude::*;
 use yew::html::Scope;
 use yew::NodeRef;
@@ -8,16 +9,38 @@ use gloo::events::EventListener;
 use gloo::utils::{window as browser_window, document};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, Element};
-use crate::window::{Window, WindowState, WindowId, WindowClose, WindowPosition};
 use crate::MAX_BACKGROUND_INDEX;
-use rand::Rng;
+use crate::window::{Window, WindowState, WindowId, WindowClose, WindowPosition};
 
+use std::rc::Rc;
 
 
 enum MoveEvent {
     MouseEvent(MouseEvent),
     TouchEvent(TouchEvent)
 }
+
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Theme {
+    pub background: u32
+}
+impl Reducible for Theme {
+    type Action = u32;
+
+    fn reduce(self: Rc<Self>, background: Self::Action) -> Rc<Self> { 
+        let background = if background == 0 {
+            MAX_BACKGROUND_INDEX - 1
+        } else if background == MAX_BACKGROUND_INDEX {
+            1
+        } else {
+            background
+        };
+        Theme { background }.into()
+    }
+}
+pub type ThemeContext = UseReducerHandle<Theme>;
+
 
 
 #[derive(Debug)]
@@ -32,18 +55,18 @@ pub enum CoplandMsg {
     MaximiseWindow(WindowId),
     RestoreWindow(WindowId),
     ResizeBrowser,
-    IncrementBackground,
-    DecrementBackground,
+    ThemeContextUpdated(ThemeContext),
 }
 
 pub struct Copland {
     windows: BTreeMap<WindowId, Window>,
     max_z_index: u32,
     pub focused_window: WindowId,
-    background: u32,
     window_area: NodeRef,
     mouse_offset_x: i32,
     mouse_offset_y: i32,
+    theme: ThemeContext,
+    _theme_listener: ContextHandle<ThemeContext>,
     mouse_move_listener: Option<EventListener>,
     mouse_up_listener: Option<EventListener>,
     // touch_move_listener: Option<EventListener>,
@@ -94,12 +117,13 @@ impl Component for Copland {
         });
         listener.forget();
 
-        let mut rng = rand::thread_rng();
-        let background = rng.gen_range(1..MAX_BACKGROUND_INDEX);
+        let (theme, theme_listener) = ctx
+            .link()
+            .context(ctx.link().callback(CoplandMsg::ThemeContextUpdated))
+            .expect("No ThemeContext provided");
 
-        let bcopy = background as u32;
         let windows = vec![
-            Window::home(ctx.link(), bcopy)
+            Window::home(ctx.link())
         ];
         let windows: BTreeMap<WindowId, Window> = windows.into_iter().map(|w| (w.id, w)).collect();
         let max_z_index = windows.len().try_into().unwrap();
@@ -111,28 +135,17 @@ impl Component for Copland {
             window_area: NodeRef::default(),
             mouse_offset_x: 0,
             mouse_offset_y: 0,
+            theme,
+            _theme_listener: theme_listener,
             mouse_move_listener: None,
             mouse_up_listener: None,
-            background
         }
     }
 
     fn update(&mut self, ctx: &Context<Self>, copland_msg: Self::Message) -> bool {
         match copland_msg {
-            CoplandMsg::IncrementBackground => {
-                self.background = if self.background + 1 == MAX_BACKGROUND_INDEX {
-                    0
-                } else {
-                    self.background + 1
-                };
-                true
-            },
-            CoplandMsg::DecrementBackground => {
-                self.background = if self.background == 0 {
-                    MAX_BACKGROUND_INDEX - 1
-                } else {
-                    self.background - 1
-                };
+            CoplandMsg::ThemeContextUpdated(theme) => {
+                self.theme = theme;
                 true
             },
             CoplandMsg::OpenWindow(window) => {
@@ -306,7 +319,7 @@ impl Component for Copland {
                 <div id="window-area"
                     class="window-area"
                     ref={self.window_area.clone()}
-                    style={format!("background-image: url(assets/backgrounds/{}.gif)", self.background)}
+                    style={format!("background-image: url(assets/backgrounds/{}.gif)", self.theme.background)}
                 >
                     {
                         self.windows.values().map(|window| {
