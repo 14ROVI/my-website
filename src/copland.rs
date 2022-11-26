@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use yew::context::ContextHandle;
 use yew::prelude::*;
@@ -59,7 +59,7 @@ pub enum CoplandMsg {
 }
 
 pub struct Copland {
-    windows: HashMap<WindowId, Window>,
+    windows: BTreeMap<WindowId, Window>,
     max_z_index: u32,
     pub focused_window: WindowId,
     window_area: NodeRef,
@@ -125,7 +125,7 @@ impl Component for Copland {
         let windows = vec![
             Window::home(ctx.link())
         ];
-        let windows: HashMap<WindowId, Window> = windows.into_iter().map(|w| (w.id, w)).collect();
+        let windows: BTreeMap<WindowId, Window> = windows.into_iter().map(|w| (w.id, w)).collect();
         let max_z_index = windows.len().try_into().unwrap();
 
         Self {
