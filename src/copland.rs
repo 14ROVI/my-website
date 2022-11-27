@@ -130,7 +130,7 @@ impl Copland {
                 {onclick}
                 class={ classes!(focused) }
             >
-                <img class="title-bar-icon" src={window.icon.clone()} />
+                <img class="title-bar-icon" src={window.icon.clone()} alt="button icon" />
                 <span>{ window.title.clone() }</span>
             </button>
         }

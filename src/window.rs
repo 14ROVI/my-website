@@ -224,7 +224,7 @@ impl Window {
                     ontouchstart={link.callback(move |e| CoplandMsg::DragWindowStart(id, MoveEvent::TouchEvent(e)))}
                 >
                     <div class="title-bar-text-icon">
-                        <img class="title-bar-icon" src={self.icon.clone()} />
+                        <img class="title-bar-icon" src={self.icon.clone()} alt="title bar icon" />
                         <div class="title-bar-text">{ self.title.clone() }</div>
                     </div>
                     <div class="title-bar-controls">
