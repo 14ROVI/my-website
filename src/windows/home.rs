@@ -6,6 +6,8 @@ pub struct HomeWindowProps {
     pub open_spotify: Callback<MouseEvent>,
     pub open_about_me: Callback<MouseEvent>,
     pub open_background: Callback<MouseEvent>,
+    pub open_socials: Callback<MouseEvent>,
+    pub open_projects: Callback<MouseEvent>,
 }
 
 #[function_component(Home)]
@@ -19,7 +21,8 @@ pub fn home(props: &HomeWindowProps) -> Html {
                 <li><a href="javascript:void(0);" onclick={&props.open_about_me}>{ "About me" }</a></li>
                 <li><a href="javascript:void(0);" onclick={&props.open_spotify}>{ "See what I'm listening to on Spotify!" }</a></li>
                 <li><a href="javascript:void(0);" onclick={&props.open_background}>{ "Change the background?" }</a></li>
-                <li><a href="javascript:void(0);" onclick={&props.open_spotify}>{ "My other projects.." }</a></li>
+                <li><a href="javascript:void(0);" onclick={&props.open_projects}>{ "My other projects.." }</a></li>
+                <li><a href="javascript:void(0);" onclick={&props.open_socials}>{ "Add all my social links ツ" }</a></li>
             </ul>
             <br/>
             <div class="status-bar">

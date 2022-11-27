@@ -27,6 +27,7 @@ img {
     background-repeat: no-repeat;
     background-size: cover;
     background-color: #023020;
+    background-position: center;
 }
 .taskbar {
     z-index: 10000;

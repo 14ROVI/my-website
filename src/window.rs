@@ -3,8 +3,8 @@ use std::fmt;
 use yew::{Html, html, classes};
 use yew::html::Scope;
 
-use crate::copland::{Copland, CoplandMsg};
-use crate::windows::{Spotify, Home, AboutMe, BackgroundSelector};
+use crate::copland::{Copland, CoplandMsg, MoveEvent};
+use crate::windows::{Spotify, Home, AboutMe, BackgroundSelector, Socials, Projects};
 
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -72,6 +72,8 @@ impl Window {
         let open_spotify = link.callback(|_| CoplandMsg::OpenWindow(Self::spotify()));
         let open_about_me = link.callback(|_| CoplandMsg::OpenWindow(Self::about_me()));
         let open_background = link.callback(move |_| CoplandMsg::OpenWindow(Self::background_selector()));
+        let open_socials = link.callback(move |_| CoplandMsg::OpenWindow(Self::socials()));
+        let open_projects = link.callback(move |_| CoplandMsg::OpenWindow(Self::projects()));
 
         Window {
             id: WindowId::Home,
@@ -84,7 +86,7 @@ impl Window {
             icon: "assets/icons/computer_explorer-5.png".to_string(),
             title: "Home".to_string(),
             body: html!{
-                <Home {open_background} {open_spotify} {open_about_me}></Home>
+                <Home {open_background} {open_spotify} {open_about_me} {open_socials} {open_projects}></Home>
             }
         }
     }
@@ -123,7 +125,6 @@ impl Window {
         }
     }
 
-
     pub fn background_selector() -> Self {
         Window {
             id: WindowId::BackgroundSelector,
@@ -137,6 +138,40 @@ impl Window {
             title: "Select Background".to_string(),
             body: html!{
                 <BackgroundSelector></BackgroundSelector>
+            }
+        }
+    }
+
+    pub fn socials() -> Self {
+        Window {
+            id: WindowId::SocialLinks,
+            state: WindowState::Open,
+            close: WindowClose::Close,
+            z_index: 0,
+            top: WindowPosition::Far,
+            left: WindowPosition::Half,
+            width: 250,
+            icon: "assets/icons/netmeeting-0.png".to_string(),
+            title: "Social links ツ".to_string(),
+            body: html!{
+                <Socials></Socials>
+            }
+        }
+    }
+
+    pub fn projects() -> Self {
+        Window {
+            id: WindowId::Projects,
+            state: WindowState::Open,
+            close: WindowClose::Close,
+            z_index: 0,
+            top: WindowPosition::Half,
+            left: WindowPosition::Half,
+            width: 350,
+            icon: "assets/icons/keyboard-5.png".to_string(),
+            title: "(Some) of my projects".to_string(),
+            body: html!{
+                <Projects></Projects>
             }
         }
     }
@@ -181,10 +216,12 @@ impl Window {
                 class="window"
                 style={style}
                 onmousedown={link.callback(move |_| CoplandMsg::FocusWindow(id))}
+                ontouchstart={link.callback(move |_| CoplandMsg::FocusWindow(id))}
             >
                 <div
                     class={classes!(focused_class)}
-                    onmousedown={link.callback(move |e| CoplandMsg::DragWindowStart(id, e))}
+                    onmousedown={link.callback(move |e| CoplandMsg::DragWindowStart(id, MoveEvent::MouseEvent(e)))}
+                    ontouchstart={link.callback(move |e| CoplandMsg::DragWindowStart(id, MoveEvent::TouchEvent(e)))}
                 >
                     <div class="title-bar-text-icon">
                         <img class="title-bar-icon" src={self.icon.clone()} />

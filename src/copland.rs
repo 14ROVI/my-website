@@ -4,20 +4,53 @@ use yew::context::ContextHandle;
 use yew::prelude::*;
 use yew::html::Scope;
 use yew::NodeRef;
-use yew::events::MouseEvent;
+use yew::events::{MouseEvent, TouchEvent};
 use gloo::events::EventListener;
 use gloo::utils::{window as browser_window, document};
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlElement, Element};
+use web_sys::{HtmlElement, Element, EventTarget};
 use crate::MAX_BACKGROUND_INDEX;
 use crate::window::{Window, WindowState, WindowId, WindowClose, WindowPosition};
 
 use std::rc::Rc;
 
-
-enum MoveEvent {
+#[derive(Debug)]
+pub enum MoveEvent {
     MouseEvent(MouseEvent),
     TouchEvent(TouchEvent)
+}
+impl MoveEvent {
+    fn target(&self) -> Option<EventTarget> {
+        match self {
+            MoveEvent::MouseEvent(e) => e.target(),
+            MoveEvent::TouchEvent(e) => e.target(),
+        }
+    }
+
+    fn prevent_default(&self) {
+        match self {
+            MoveEvent::MouseEvent(e) => e.prevent_default(),
+            MoveEvent::TouchEvent(_) => (), // TouchEvent doesn't suport prevent_default()
+        };
+    }
+
+    fn client_x(&self) -> i32 {
+        match self {
+            MoveEvent::MouseEvent(e) => e.client_x(),
+            MoveEvent::TouchEvent(e) => {
+                e.target_touches().get(0).unwrap().client_x()
+            },
+        }
+    }
+
+    fn client_y(&self) -> i32 {
+        match self {
+            MoveEvent::MouseEvent(e) => e.client_y(),
+            MoveEvent::TouchEvent(e) => {
+                e.target_touches().get(0).unwrap().client_y()
+            },
+        }
+    }
 }
 
 
@@ -48,9 +81,9 @@ pub enum CoplandMsg {
     OpenWindow(Window),
     FocusWindow(WindowId),
     CloseWindow(WindowId),
-    DragWindowStart(WindowId, MouseEvent),
-    DragWindowMove(WindowId, MouseEvent),
-    DragWindowEnd(WindowId, MouseEvent),
+    DragWindowStart(WindowId, MoveEvent),
+    DragWindowMove(WindowId, MoveEvent),
+    DragWindowEnd(WindowId, MoveEvent),
     MinimiseWindow(WindowId),
     MaximiseWindow(WindowId),
     RestoreWindow(WindowId),
@@ -69,8 +102,8 @@ pub struct Copland {
     _theme_listener: ContextHandle<ThemeContext>,
     mouse_move_listener: Option<EventListener>,
     mouse_up_listener: Option<EventListener>,
-    // touch_move_listener: Option<EventListener>,
-    // touch_up_listener: Option<EventListener>,
+    touch_move_listener: Option<EventListener>,
+    touch_up_listener: Option<EventListener>,
 }
 impl Copland {
     fn view_taskbar_button(&self, window: &Window, link: &Scope<Self>) -> Html {
@@ -139,6 +172,8 @@ impl Component for Copland {
             _theme_listener: theme_listener,
             mouse_move_listener: None,
             mouse_up_listener: None,
+            touch_move_listener: None,
+            touch_up_listener: None,
         }
     }
 
@@ -222,7 +257,7 @@ impl Component for Copland {
                                 "mousemove",
                                 move |e| {
                                 let event = e.dyn_ref::<MouseEvent>().unwrap();
-                                on_mouse_move.emit(event.clone());
+                                on_mouse_move.emit(MoveEvent::MouseEvent(event.clone()));
                             });
                             self.mouse_move_listener = Some(listener);
 
@@ -232,9 +267,29 @@ impl Component for Copland {
                                 "mouseup",
                                 move |e| {
                                 let event = e.dyn_ref::<MouseEvent>().unwrap();
-                                on_mouse_up.emit(event.clone());
+                                on_mouse_up.emit(MoveEvent::MouseEvent(event.clone()));
                             });
                             self.mouse_up_listener = Some(listener);
+
+                            let on_touch_move = ctx.link().callback(move |e| CoplandMsg::DragWindowMove(window_id, e));
+                            let listener = EventListener::new(
+                                &browser_window(), 
+                                "touchmove",
+                                move |e| {
+                                let event = e.dyn_ref::<TouchEvent>().unwrap();
+                                on_touch_move.emit(MoveEvent::TouchEvent(event.clone()));
+                            });
+                            self.touch_move_listener = Some(listener);
+
+                            let on_touch_up = ctx.link().callback(move |e| CoplandMsg::DragWindowEnd(window_id, e));
+                            let listener = EventListener::new(
+                                &browser_window(), 
+                                "touchend",
+                                move |e| {
+                                let event = e.dyn_ref::<TouchEvent>().unwrap();
+                                on_touch_up.emit(MoveEvent::TouchEvent(event.clone()));
+                            });
+                            self.touch_up_listener = Some(listener);
 
                             return true;
                         } else {
@@ -245,7 +300,8 @@ impl Component for Copland {
                 false
             },
             CoplandMsg::DragWindowMove(window_id, e) => {
-                log::info!("dragging window");
+                // log::info!("dragging window");
+                log::info!("{:?}", e);
                 if let Some(window) = self.windows.get_mut(&window_id) {
                     if let Some(window_el) = document().get_element_by_id(&format!("window-{}", window_id)) {
                         let window_height = window_el.client_height();
@@ -266,6 +322,8 @@ impl Component for Copland {
                 log::info!("stopped dragging window");
                 self.mouse_move_listener = None;
                 self.mouse_up_listener = None;
+                self.touch_move_listener = None;
+                self.touch_up_listener = None;
                 false
             },
             CoplandMsg::MinimiseWindow(window_id) => {
