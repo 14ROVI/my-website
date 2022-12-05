@@ -6,13 +6,24 @@ use yew::html::Scope;
 use yew::NodeRef;
 use yew::events::{MouseEvent, TouchEvent};
 use gloo::events::EventListener;
+use gloo::timers::callback::Interval;
 use gloo::utils::{window as browser_window, document};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, Element, EventTarget};
+use js_sys::Date;
 use crate::MAX_BACKGROUND_INDEX;
 use crate::window::{Window, WindowState, WindowId, WindowClose, WindowPosition};
 
 use std::rc::Rc;
+
+
+fn get_time_string() -> String {
+    let now = Date::new_0();
+    let hours = now.get_hours();
+    let minutes = now.get_minutes();
+    format!("{:02}:{:02}", hours, minutes)
+}
+
 
 #[derive(Debug)]
 pub enum MoveEvent {
@@ -89,6 +100,7 @@ pub enum CoplandMsg {
     RestoreWindow(WindowId),
     ResizeBrowser,
     ThemeContextUpdated(ThemeContext),
+    UpdateTaskbarTime,
 }
 
 pub struct Copland {
@@ -96,6 +108,7 @@ pub struct Copland {
     max_z_index: u32,
     pub focused_window: WindowId,
     window_area: NodeRef,
+    taskbar_time: String,
     mouse_offset_x: i32,
     mouse_offset_y: i32,
     theme: ThemeContext,
@@ -161,11 +174,21 @@ impl Component for Copland {
         let windows: BTreeMap<WindowId, Window> = windows.into_iter().map(|w| (w.id, w)).collect();
         let max_z_index = windows.len().try_into().unwrap();
 
+        let update_taskbar_time = 
+            ctx.link().callback(|_| CoplandMsg::UpdateTaskbarTime);
+        let taskbar_interval = Interval::new(
+            1000,
+            move || {
+                update_taskbar_time.emit(());
+        });
+        taskbar_interval.forget();
+
         Self {
             windows,
             max_z_index,
             focused_window: WindowId::Home,
             window_area: NodeRef::default(),
+            taskbar_time: get_time_string(),
             mouse_offset_x: 0,
             mouse_offset_y: 0,
             theme,
@@ -367,6 +390,10 @@ impl Component for Copland {
                     }
                 }
                 true
+            },
+            CoplandMsg::UpdateTaskbarTime => {
+                self.taskbar_time = get_time_string();
+                true
             }
         }
     }
@@ -391,6 +418,9 @@ impl Component for Copland {
                             self.view_taskbar_button(window, ctx.link())
                         }).collect::<Html>()
                     }
+                    <div class="taskbar-time">
+                        {self.taskbar_time.clone()}
+                    </div>
                 </div>
             </div>
         }
