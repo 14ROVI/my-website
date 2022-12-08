@@ -26,3 +26,4 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         source: "dist/*"
         target: ${{ secrets.DESTINATION }}
+        rm: true
