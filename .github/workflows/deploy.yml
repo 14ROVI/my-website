@@ -1,0 +1,26 @@
+name: Deploy
+
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+
+    - run: cargo install trunk
+    - run: trunk build --release
+    
+    - uses: SamKirkland/web-deploy@v1
+      with:
+        target-server: ${{ secrets.SERVER }}
+        remote-user: ${{ secrets.USERNAME }}
+        private-ssh-key: ${{ secrets.SSH_KEY }}
+        source-path: ./dist/
+        destination-path: ${{ secrets.DESTINATION }}

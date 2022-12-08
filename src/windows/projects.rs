@@ -19,7 +19,7 @@ pub fn projects() -> Html {
                 Featuring it's own programming language, reminders, ranking, image manipulation and generation, YouTube and Twitch integrations, it was my biggest project.
                 It was mainly coded in python but for it's website I used JS, HTML, and CSS (NO FRAMEWORKS, in fact I made my own mini router for this).
                 It had a Postgres database which the website and bot interacted with via a RPC interface I coded with custom caching.
-                My one truely full stack project.
+                My one truly full stack project.
             ".to_string(),
             link: None,
         },
