@@ -14,13 +14,15 @@ jobs:
         toolchain: stable
         target: wasm32-unknown-unknown
 
+    - uses: Swatinem/rust-cache@v2
+
     - run: cargo install trunk
     - run: trunk build --release
     
-    - uses: SamKirkland/web-deploy@v1
+    - uses: appleboy/scp-action@master
       with:
-        target-server: ${{ secrets.SERVER }}
-        remote-user: ${{ secrets.USERNAME }}
-        private-ssh-key: ${{ secrets.SSH_KEY }}
-        source-path: ./dist/
-        destination-path: ${{ secrets.DESTINATION }}
+        host: ${{ secrets.SERVER }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        source: "dist/*"
+        target: ${{ secrets.DESTINATION }}
