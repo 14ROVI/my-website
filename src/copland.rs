@@ -403,10 +403,19 @@ impl Component for Copland {
         }
     }
 
+    fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
+        if first_render {
+            if let Some(bg) = self.background_video.cast::<HtmlVideoElement>() {
+                bg.load();
+                bg.set_muted(true);
+            }
+        }
+    }
+
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
             <div id="copland" class="copland">
-                <video class="background" autoplay=true muted=true loop=true
+                <video class="background" playsinline=true autoplay={true} muted=true loop=true
                     ref={self.background_video.clone()}
                 >
                     <source src={format!("assets/backgrounds/{}.webm", self.theme.background)} type="video/webm"/>

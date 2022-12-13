@@ -31,6 +31,7 @@ video.background {
     bottom: 0;
     min-width: 100%;
     min-height: 100%;
+    transform: translateX(calc((100% - 100vw) / 2));
 }
 .taskbar {
     z-index: 10000;
