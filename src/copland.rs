@@ -9,7 +9,7 @@ use gloo::events::EventListener;
 use gloo::timers::callback::Interval;
 use gloo::utils::{window as browser_window, document};
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlElement, Element, EventTarget};
+use web_sys::{HtmlElement, Element, EventTarget, HtmlVideoElement};
 use js_sys::Date;
 use crate::MAX_BACKGROUND_INDEX;
 use crate::window::{Window, WindowState, WindowId, WindowClose, WindowPosition};
@@ -108,6 +108,7 @@ pub struct Copland {
     max_z_index: u32,
     pub focused_window: WindowId,
     window_area: NodeRef,
+    background_video: NodeRef,
     taskbar_time: String,
     mouse_offset_x: i32,
     mouse_offset_y: i32,
@@ -188,6 +189,7 @@ impl Component for Copland {
             max_z_index,
             focused_window: WindowId::Home,
             window_area: NodeRef::default(),
+            background_video: NodeRef::default(),
             taskbar_time: get_time_string(),
             mouse_offset_x: 0,
             mouse_offset_y: 0,
@@ -204,6 +206,9 @@ impl Component for Copland {
         match copland_msg {
             CoplandMsg::ThemeContextUpdated(theme) => {
                 self.theme = theme;
+                let el = self.background_video.cast::<HtmlVideoElement>().unwrap();
+                el.load();
+                el.play().ok();
                 true
             },
             CoplandMsg::OpenWindow(window) => {
@@ -401,10 +406,16 @@ impl Component for Copland {
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
             <div id="copland" class="copland">
+                <video class="background" autoplay=true muted=true loop=true
+                    ref={self.background_video.clone()}
+                >
+                    <source src={format!("assets/backgrounds/{}.webm", self.theme.background)} type="video/webm"/>
+                    <source src={format!("assets/backgrounds/{}.mp4", self.theme.background)} type="video/mp4"/>
+                </video>    
                 <div id="window-area"
                     class="window-area"
                     ref={self.window_area.clone()}
-                    style={format!("background-image: url(assets/backgrounds/{}.gif)", self.theme.background)}
+                    // style={format!("background-image: url(assets/backgrounds/{}.gif)", self.theme.background)}
                 >
                     {
                         self.windows.values().map(|window| {
