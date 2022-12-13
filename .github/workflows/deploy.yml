@@ -13,9 +13,9 @@ jobs:
 
     - run: rustup target add wasm32-unknown-unknown
     - run: cargo install trunk
-    - run: cargo install wasm-opt --locked
+    - run: sudo apt install -y binaryen
     - run: trunk build --release
-    - run: wasm-opt -Oz -o output.wasm input.wasm
+    - run: grep -l -r . --include "*.wasm" | xargs -I '{}' wasm-opt -Oz -o '{}' '{}'
     
     - uses: appleboy/scp-action@master
       with:
