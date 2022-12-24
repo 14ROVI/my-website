@@ -75,6 +75,7 @@ video.background {
 }
 .window {
     position: absolute;
+    width: -moz-fit-content;
     width: fit-content;
     max-width: 100%;
     display: flex;
@@ -89,6 +90,7 @@ video.background {
 .title-bar-text-icon {
     display: flex;
     align-items: center;
+    -webkit-user-select: none;
     user-select: none;
 }
 .title-bar-icon {
