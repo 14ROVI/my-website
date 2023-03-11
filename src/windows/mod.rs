@@ -15,3 +15,6 @@ pub use socials::Socials;
 
 mod projects;
 pub use projects::{Projects, Project};
+
+mod sticky_note;
+pub use sticky_note::{StickyNoteProps, StickyNote};

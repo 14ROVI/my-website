@@ -4,7 +4,7 @@ use yew::{Html, html, classes};
 use yew::html::Scope;
 
 use crate::copland::{Copland, CoplandMsg, MoveEvent};
-use crate::windows::{Spotify, Home, AboutMe, BackgroundSelector, Socials, Projects};
+use crate::windows::{Spotify, Home, AboutMe, BackgroundSelector, Socials, Projects, StickyNote};
 
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -30,7 +30,7 @@ pub enum WindowId {
     SocialLinks,
     BackgroundSelector,
     Projects,
-    Other(usize)
+    StickyNote(usize)
 }
 impl fmt::Display for WindowId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -41,7 +41,7 @@ impl fmt::Display for WindowId {
             Self::SocialLinks => "SocialLinks".to_string(),
             Self::BackgroundSelector => "BackgroundSelector".to_string(),
             Self::Projects => "Projects".to_string(),
-            Self::Other(index) => format!("Other({})", index),
+            Self::StickyNote(index) => format!("StickyNote({})", index),
         };
         write!(f, "{}", id)
     }
@@ -176,6 +176,23 @@ impl Window {
         }
     }
 
+    pub fn sticky_note(id: u32, content: String, created_at: u32, x: i32, y: i32) -> Self {
+        Window {
+            id: WindowId::StickyNote(id as usize),
+            state: WindowState::Open,
+            close: WindowClose::Close,
+            z_index: 0,
+            top: WindowPosition::Close(x),
+            left: WindowPosition::Close(y),
+            width: 200,
+            icon: "assets/icons/template_empty-5.png".to_string(),
+            title: format!("sticky note {id}"),
+            body: html!{
+                <StickyNote {content} {created_at}></StickyNote>
+            }
+        }
+    }
+
 
     pub fn view(&self, link: &Scope<Copland>, copland: &Copland) -> Html {
         let id = self.id;
@@ -209,11 +226,16 @@ impl Window {
             focused_class.push("inactive");
         }
 
+        let window_class = match self.id {
+            WindowId::StickyNote(_) => vec!["window", "sticky-note"],
+            _ => vec!["window"]
+        };
+
         html! {
             <div
                 key={key.clone()}
                 id={key.clone()}
-                class="window"
+                class={window_class}
                 style={style}
                 onmousedown={link.callback(move |_| CoplandMsg::FocusWindow(id))}
                 ontouchstart={link.callback(move |_| CoplandMsg::FocusWindow(id))}

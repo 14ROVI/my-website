@@ -156,7 +156,8 @@ impl Component for Copland {
             .expect("No ThemeContext provided");
 
         let windows = vec![
-            Window::home(ctx.link())
+            Window::home(ctx.link()),
+            Window::sticky_note(0, "hey there!".to_string(), 0, 0, 0)
         ];
         let windows: BTreeMap<WindowId, Window> = windows.into_iter().map(|w| (w.id, w)).collect();
         let max_z_index = windows.len().try_into().unwrap();

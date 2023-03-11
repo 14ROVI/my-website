@@ -107,3 +107,11 @@ img {
     text-overflow: ellipsis;
     margin: 0;
 }
+
+
+.sticky-note {
+    background-color: #ceffce;
+}
+.sticky-note [aria-label="Maximize"] {
+    display: none;
+}
