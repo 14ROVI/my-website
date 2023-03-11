@@ -24,10 +24,14 @@ img {
 .window-area {
     position: relative;
     flex: 1;
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-color: #023020;
-    background-position: center;
+}
+video.background {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    min-width: 100%;
+    min-height: 100%;
+    transform: translateX(calc((100% - 100vw) / 2));
 }
 .taskbar {
     z-index: 10000;
@@ -56,9 +60,22 @@ img {
 .taskbar-button-active {
     box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey;
     font-weight: bold;
-}    
+}
+.taskbar-time {
+    display: flex;
+    align-items: center;
+    place-content: center;
+    padding: 0px 10px;
+    margin-left: auto;
+    box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -1px -1px #dfdfdf, inset 1px 1px grey;
+    background: silver;
+    border: none;
+    border-radius: 0;
+    box-sizing: border-box;
+}
 .window {
     position: absolute;
+    width: -moz-fit-content;
     width: fit-content;
     max-width: 100%;
     display: flex;
@@ -73,6 +90,7 @@ img {
 .title-bar-text-icon {
     display: flex;
     align-items: center;
+    -webkit-user-select: none;
     user-select: none;
 }
 .title-bar-icon {

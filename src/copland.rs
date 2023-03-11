@@ -6,13 +6,24 @@ use yew::html::Scope;
 use yew::NodeRef;
 use yew::events::{MouseEvent, TouchEvent};
 use gloo::events::EventListener;
+use gloo::timers::callback::Interval;
 use gloo::utils::{window as browser_window, document};
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlElement, Element, EventTarget};
+use web_sys::{HtmlElement, Element, EventTarget, HtmlVideoElement};
+use js_sys::Date;
 use crate::MAX_BACKGROUND_INDEX;
 use crate::window::{Window, WindowState, WindowId, WindowClose, WindowPosition};
 
 use std::rc::Rc;
+
+
+fn get_time_string() -> String {
+    let now = Date::new_0();
+    let hours = now.get_hours();
+    let minutes = now.get_minutes();
+    format!("{:02}:{:02}", hours, minutes)
+}
+
 
 #[derive(Debug)]
 pub enum MoveEvent {
@@ -89,6 +100,7 @@ pub enum CoplandMsg {
     RestoreWindow(WindowId),
     ResizeBrowser,
     ThemeContextUpdated(ThemeContext),
+    UpdateTaskbarTime,
 }
 
 pub struct Copland {
@@ -96,6 +108,8 @@ pub struct Copland {
     max_z_index: u32,
     pub focused_window: WindowId,
     window_area: NodeRef,
+    background_video: NodeRef,
+    taskbar_time: String,
     mouse_offset_x: i32,
     mouse_offset_y: i32,
     theme: ThemeContext,
@@ -162,11 +176,22 @@ impl Component for Copland {
         let windows: BTreeMap<WindowId, Window> = windows.into_iter().map(|w| (w.id, w)).collect();
         let max_z_index = windows.len().try_into().unwrap();
 
+        let update_taskbar_time = 
+            ctx.link().callback(|_| CoplandMsg::UpdateTaskbarTime);
+        let taskbar_interval = Interval::new(
+            1000,
+            move || {
+                update_taskbar_time.emit(());
+        });
+        taskbar_interval.forget();
+
         Self {
             windows,
             max_z_index,
             focused_window: WindowId::Home,
             window_area: NodeRef::default(),
+            background_video: NodeRef::default(),
+            taskbar_time: get_time_string(),
             mouse_offset_x: 0,
             mouse_offset_y: 0,
             theme,
@@ -182,6 +207,9 @@ impl Component for Copland {
         match copland_msg {
             CoplandMsg::ThemeContextUpdated(theme) => {
                 self.theme = theme;
+                let el = self.background_video.cast::<HtmlVideoElement>().unwrap();
+                el.load();
+                el.play().ok();
                 true
             },
             CoplandMsg::OpenWindow(window) => {
@@ -368,6 +396,19 @@ impl Component for Copland {
                     }
                 }
                 true
+            },
+            CoplandMsg::UpdateTaskbarTime => {
+                self.taskbar_time = get_time_string();
+                true
+            }
+        }
+    }
+
+    fn rendered(&mut self, _ctx: &Context<Self>, first_render: bool) {
+        if first_render {
+            if let Some(bg) = self.background_video.cast::<HtmlVideoElement>() {
+                bg.load();
+                bg.set_muted(true);
             }
         }
     }
@@ -375,10 +416,16 @@ impl Component for Copland {
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
             <div id="copland" class="copland">
+                <video class="background" playsinline=true autoplay={true} muted=true loop=true
+                    ref={self.background_video.clone()}
+                >
+                    <source src={format!("assets/backgrounds/{}.webm", self.theme.background)} type="video/webm"/>
+                    <source src={format!("assets/backgrounds/{}.mp4", self.theme.background)} type="video/mp4"/>
+                </video>    
                 <div id="window-area"
                     class="window-area"
                     ref={self.window_area.clone()}
-                    style={format!("background-image: url(assets/backgrounds/{}.gif)", self.theme.background)}
+                    // style={format!("background-image: url(assets/backgrounds/{}.gif)", self.theme.background)}
                 >
                     {
                         self.windows.values().map(|window| {
@@ -392,6 +439,9 @@ impl Component for Copland {
                             self.view_taskbar_button(window, ctx.link())
                         }).collect::<Html>()
                     }
+                    <div class="taskbar-time">
+                        {self.taskbar_time.clone()}
+                    </div>
                 </div>
             </div>
         }

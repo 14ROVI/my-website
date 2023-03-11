@@ -1,0 +1,27 @@
+name: Deploy
+
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: Swatinem/rust-cache@v2
+
+    - run: rustup target add wasm32-unknown-unknown
+    - run: cargo install trunk
+    - run: sudo apt install -y binaryen
+    - run: trunk build --release
+    - run: grep -l -r . --include "*.wasm" | xargs -I '{}' wasm-opt -Oz -o '{}' '{}'
+    
+    - uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.SERVER }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        source: "dist/*"
+        target: ${{ secrets.DESTINATION }}
+        rm: true
