@@ -125,3 +125,34 @@ video.background {
     text-overflow: ellipsis;
     margin: 0;
 }
+.lastfm-scroll-container {
+    margin-top: 10px;
+    max-height: 200px;
+    overflow-y: scroll;
+}
+.lastfm-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.lastfm-container img {
+    width: 50px;
+    height: 50px;
+}
+.lastfm-container > div {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+}
+.lastfm-container > div > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+}
+.lastfm-container > div > div > p {
+    margin: 0;
+    /* white-space: nowrap; */
+    /* overflow: hidden; */
+    /* text-overflow: ellipsis; */
+}
