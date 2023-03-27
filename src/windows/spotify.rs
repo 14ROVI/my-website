@@ -24,14 +24,14 @@ pub enum Msg {
     LanyardMessage(WsMessage),
     UpdateTime,
     UpdateHistory,
-    SaveHistory(Vec<LastFmHistoryProps>)
+    SaveHistory(Vec<LastFmHistoryHOCProps>)
 }
 
 pub struct Spotify {
     lanyard_ws_write: UnboundedSender<String>,
     lanyard_data: Option<LanyardData>,
     update_timer: Option<Interval>,
-    history: Vec<LastFmHistoryProps>,
+    history: Vec<LastFmHistoryHOCProps>,
 }
 impl Component for Spotify {
     type Message = Msg;
@@ -133,9 +133,10 @@ impl Component for Spotify {
                         .unwrap();
                     let json: Value = serde_json::from_str(&text).unwrap();
                     let tracks = json["recenttracks"]["track"].as_array().unwrap();
-                    let tracks: Vec<LastFmHistoryProps> = tracks.iter().map(|t| {
+                    let tracks: Vec<LastFmHistoryHOCProps> = tracks.iter().map(|t| {
                         let t = t.clone();
-                        LastFmHistoryProps {
+                        LastFmHistoryHOCProps {
+                            current_time: Date::now() as u64 / 1000,
                             album_art: t["image"][3]["#text"].as_str().unwrap_or_default().to_string(),
                             song: t["name"].as_str().unwrap_or_default().to_string(),
                             artist: t["artist"]["#text"].as_str().unwrap_or_default().to_string(),
@@ -162,13 +163,17 @@ impl Component for Spotify {
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
+        let current_time = Date::now() as u64 / 1000;
+
         let history = html! {
             <div class="lastfm-scroll-container">
                 <div class="lastfm-container">
-                    { self.history.iter().map(|p|
-                        html! { <LastFmHistory ..p.clone()/> }
-                        ).collect::<Html>()
-                    }
+                    { self.history.iter().map(|p| html! { 
+                        <LastFmHistoryHOC
+                            key={p.listened_at}
+                            {current_time}
+                            ..p.clone()/> 
+                    } ).collect::<Html>() }
                 </div>
             </div>
         };
@@ -212,17 +217,25 @@ impl Component for Spotify {
 
 
 #[derive(Properties, PartialEq, Debug, Clone)]
-pub struct LastFmHistoryProps {
+pub struct LastFmHistoryHOCProps {
+    pub current_time: u64,
     pub album_art: String,
     pub song: String,
     pub artist: String,
     pub listened_at: u64,
 }
 
-#[function_component(LastFmHistory)]
-pub fn last_fm_history(props: &LastFmHistoryProps) -> Html {
-    let current_time = Date::now() as u64 / 1000;
-    let elapsed = current_time - props.listened_at;
+#[derive(Properties, PartialEq)]
+pub struct LastFmHistoryProps {
+    pub album_art: String,
+    pub song: String,
+    pub artist: String,
+    pub formatted_time: String,
+}
+
+#[function_component(LastFmHistoryHOC)]
+pub fn last_fm_history_hoc(props: &LastFmHistoryHOCProps) -> Html {
+    let elapsed = props.current_time - props.listened_at;
 
     let s_per_minute = 60;
     let s_per_hour = 3600;
@@ -262,13 +275,25 @@ pub fn last_fm_history(props: &LastFmHistoryProps) -> Html {
         String::from("1 second ago")
     };
 
+    html! {
+        <LastFmHistory
+            album_art={props.album_art.clone()}
+            song={props.song.clone()}
+            artist={props.artist.clone()}
+            formatted_time={formatted_time}
+        /> 
+    }
+}
+
+#[function_component(LastFmHistory)]
+pub fn last_fm_history(props: &LastFmHistoryProps) -> Html {
     html!{
         <div>
             <img alt="Track album art" width="50" height="50" src={ props.album_art.clone() }/>
             <div>
                 <p><b>{ props.song.clone() }</b></p>
                 <p>{ props.artist.clone() }</p>
-                <p>{ formatted_time }</p>
+                <p>{ props.formatted_time.clone() }</p>
             </div>
         </div>
     }
