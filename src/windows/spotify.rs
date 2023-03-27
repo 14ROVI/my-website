@@ -162,6 +162,17 @@ impl Component for Spotify {
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
+        let history = html! {
+            <div class="lastfm-scroll-container">
+                <div class="lastfm-container">
+                    { self.history.iter().map(|p|
+                        html! { <LastFmHistory ..p.clone()/> }
+                        ).collect::<Html>()
+                    }
+                </div>
+            </div>
+        };
+
         if let Some(lanyard_data) = self.lanyard_data.as_ref() {
 
             let current_time = Date::now() as u64;
@@ -185,19 +196,15 @@ impl Component for Spotify {
                             <p id="spotify-song-duration">{ "Elapsed: " }{ format_time(elapsed_time) }{" / "}{ format_time(total_time) }</p>
                         </div>
                     </div>
-                    <div class="lastfm-scroll-container">
-                        <div class="lastfm-container">
-                            { self.history.iter().map(|p|
-                                html! { <LastFmHistory ..p.clone()/> }
-                                ).collect::<Html>()
-                            }
-                        </div>
-                    </div>
+                    { history }
                 </div>
             }
         } else {
             html! {
-                <p>{ "Not currently listening to anything :(" }</p>
+                <div class="music-container">
+                    <p style="margin-bottom: 20px;">{ "Not currently listening to anything :(" }</p>
+                    { history }
+                </div>
             }
         }
     }
