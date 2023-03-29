@@ -24,13 +24,15 @@ pub enum Msg {
     LanyardMessage(WsMessage),
     UpdateTime,
     UpdateHistory,
-    SaveHistory(Vec<LastFmHistoryHOCProps>)
+    SaveHistory(Vec<LastFmHistoryHOCProps>),
+    ToggleShowHistory
 }
 
 pub struct Spotify {
     lanyard_ws_write: UnboundedSender<String>,
     lanyard_data: Option<LanyardData>,
     update_timer: Option<Interval>,
+    show_history: bool,
     history: Vec<LastFmHistoryHOCProps>,
 }
 impl Component for Spotify {
@@ -66,6 +68,7 @@ impl Component for Spotify {
             lanyard_ws_write: tx,
             lanyard_data: None,
             update_timer: None,
+            show_history: false,
             history: vec![]
         }
     }
@@ -154,7 +157,11 @@ impl Component for Spotify {
             Msg::SaveHistory(history) => {
                 self.history = history;
                 true
-            }
+            },
+            Msg::ToggleShowHistory => {
+                self.show_history = !self.show_history;
+                true
+            },
             _ => {
                 log::info!("not covered!");
                 false
@@ -162,10 +169,11 @@ impl Component for Spotify {
         }
     }
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         let current_time = Date::now() as u64 / 1000;
 
         let history = html! {
+            <div class="status-bar-field">
             <div class="lastfm-scroll-container">
                 <div class="lastfm-container">
                     { self.history.iter().map(|p| html! { 
@@ -175,6 +183,27 @@ impl Component for Spotify {
                             ..p.clone()/> 
                     } ).collect::<Html>() }
                 </div>
+            </div>
+            </div>
+        };
+
+        let toggle_show_history =  ctx.link().callback(|_| Msg::ToggleShowHistory);
+        let button_open = if self.show_history { 
+            Some("open")
+        } else { 
+            None 
+        };
+
+
+        let history = html! {
+            <div class="history-container">
+                <button
+                    class={classes!(button_open)}
+                    onclick={toggle_show_history}
+                >{"History"}</button>
+                if self.show_history {
+                    { history }
+                }
             </div>
         };
 
