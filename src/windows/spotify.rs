@@ -318,7 +318,12 @@ pub fn last_fm_history_hoc(props: &LastFmHistoryHOCProps) -> Html {
 pub fn last_fm_history(props: &LastFmHistoryProps) -> Html {
     html!{
         <div>
-            <img alt="Track album art" width="50" height="50" src={ props.album_art.clone() }/>
+            <img 
+                alt="Track album art"
+                width="50"
+                height="50"
+                src={ props.album_art.clone() }
+            />
             <div>
                 <p><b>{ props.song.clone() }</b></p>
                 <p>{ props.artist.clone() }</p>
