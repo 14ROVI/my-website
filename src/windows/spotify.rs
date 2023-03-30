@@ -34,6 +34,7 @@ pub struct Spotify {
     update_timer: Option<Interval>,
     show_history: bool,
     history: Vec<LastFmHistoryHOCProps>,
+    last_fm_current: Option<LastFmHistoryHOCProps>
 }
 impl Component for Spotify {
     type Message = Msg;
@@ -62,14 +63,18 @@ impl Component for Spotify {
             }
         });
 
-        // ctx.link().send_message(Msg::UpdateHistory);
+        let link = ctx.link().clone();
+        Interval::new(10_000, move || {
+            link.send_message(Msg::UpdateHistory)
+        }).forget();
 
         Self {
             lanyard_ws_write: tx,
             lanyard_data: None,
             update_timer: None,
             show_history: false,
-            history: vec![]
+            history: vec![],
+            last_fm_current: None,
         }
     }
 
@@ -116,8 +121,6 @@ impl Component for Spotify {
                     }
                 }
 
-                ctx.link().send_message(Msg::UpdateHistory);
-
                 true
             },
             Msg::UpdateTime => {
@@ -141,12 +144,12 @@ impl Component for Spotify {
                         LastFmHistoryHOCProps {
                             current_time: Date::now() as u64 / 1000,
                             album_art: t["image"][3]["#text"].as_str().unwrap_or_default().to_string(),
+                            album: t["album"]["#text"].as_str().unwrap_or_default().to_string(),
                             song: t["name"].as_str().unwrap_or_default().to_string(),
                             artist: t["artist"]["#text"].as_str().unwrap_or_default().to_string(),
                             listened_at: t["date"]["uts"].as_str().unwrap_or("0").parse().unwrap_or_default(),
                         }
                     })
-                    .filter(|p| p.listened_at != 0)
                     .collect();
 
                     log::info!("Updated last fm history.");
@@ -155,6 +158,11 @@ impl Component for Spotify {
                 false
             },
             Msg::SaveHistory(history) => {
+                if let Some(current) = history.iter().find(|p| p.listened_at == 0) {
+                    self.last_fm_current = Some(current.clone());
+                } else {
+                    self.last_fm_current = None;
+                }
                 self.history = history;
                 true
             },
@@ -176,7 +184,9 @@ impl Component for Spotify {
             <div class="status-bar-field">
             <div class="lastfm-scroll-container">
                 <div class="lastfm-container">
-                    { self.history.iter().map(|p| html! { 
+                    { self.history.iter()
+                        .filter(|p| p.listened_at != 0)
+                        .map(|p| html! { 
                         <LastFmHistoryHOC
                             key={p.listened_at}
                             {current_time}
@@ -233,6 +243,21 @@ impl Component for Spotify {
                     { history }
                 </div>
             }
+        } else if let Some(last_fm_current) = self.last_fm_current.as_ref() {
+            html!{
+                <div class="music-container">
+                    <div class="spotify-container">
+                        <img alt="Spotify album art" width="100" height="100" src={ last_fm_current.album_art.clone() }/>
+                        <div>
+                            <p><b>{ last_fm_current.song.clone() }</b></p>
+                            <p>{ "On " }{ last_fm_current.album.clone() }</p>
+                            <p>{ "By " }{ last_fm_current.artist.clone() }</p>
+                            <p id="spotify-song-duration">{"Currently listening"}</p>
+                        </div>
+                    </div>
+                    { history }
+                </div>
+            }
         } else {
             html! {
                 <div class="music-container">
@@ -249,6 +274,7 @@ impl Component for Spotify {
 pub struct LastFmHistoryHOCProps {
     pub current_time: u64,
     pub album_art: String,
+    pub album: String,
     pub song: String,
     pub artist: String,
     pub listened_at: u64,
