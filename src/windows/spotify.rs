@@ -64,9 +64,10 @@ impl Component for Spotify {
         });
 
         let link = ctx.link().clone();
-        Interval::new(10_000, move || {
+        link.send_message(Msg::UpdateHistory);
+        Interval::new(10_000, move ||
             link.send_message(Msg::UpdateHistory)
-        }).forget();
+        ).forget();
 
         Self {
             lanyard_ws_write: tx,
