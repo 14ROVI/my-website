@@ -61,18 +61,30 @@ video.background {
     box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey;
     font-weight: bold;
 }
+.taskbar-tools {
+    margin-left: auto;
+    display: flex;
+    gap: 5px;
+}
 .taskbar-time {
     display: flex;
     align-items: center;
     place-content: center;
     padding: 0px 10px;
-    margin-left: auto;
     box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -1px -1px #dfdfdf, inset 1px 1px grey;
     background: silver;
     border: none;
     border-radius: 0;
     box-sizing: border-box;
 }
+.new-sticky, .new-sticky:not(:disabled):active {
+    display: flex;
+    align-items: center;
+    min-width: 0px;
+    padding: 0 3px 0 10px;
+}
+
+
 .window {
     position: absolute;
     width: -moz-fit-content;
@@ -132,4 +144,13 @@ video.background {
 }
 .sticky-note [aria-label="Maximize"] {
     display: none;
+}
+.sticky-note textarea {
+    resize: none;
+    width: -webkit-fill-available;
+    width: fill-available;
+    overflow: hidden;
+    min-height: 50px;
+    max-height: 100px;
+    background-color: rgba(255, 255, 255, 0.4);
 }

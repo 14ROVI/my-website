@@ -10,8 +10,9 @@ yew = "0.19"
 log = "0.4.6"
 wasm-logger = "0.2.0"
 gloo = "0.8.0"
+gloo-net = { version = "0.2.6", features = ["json"] }
 wasm-bindgen = "0.2.83"
-web-sys = { version = "0.3.60", features = ["DomRect", "Element", "Touch", "TouchList", "TouchEvent", "HtmlAudioElement", "HtmlMediaElement", "HtmlButtonElement", "HtmlVideoElement", "HtmlMediaElement"] }
+web-sys = { version = "0.3.60", features = ["DomRect", "Element", "Touch", "TouchList", "TouchEvent", "HtmlAudioElement", "HtmlMediaElement", "HtmlButtonElement", "HtmlVideoElement", "HtmlMediaElement", "HtmlTextAreaElement"] }
 rand = "0.8.5"
 getrandom = { version = "0.2", features = ["js"] }
 wasm-bindgen-futures = "0.4.33"
@@ -19,6 +20,7 @@ futures = "0.3.24"
 serde_json = "1.0"
 serde = "1.0.145"
 js-sys = "0.3.60"
+urlencoding = "2.1.2"
 
 [profile.release]
 panic = "abort"

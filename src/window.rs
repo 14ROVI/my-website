@@ -176,19 +176,19 @@ impl Window {
         }
     }
 
-    pub fn sticky_note(id: u32, content: String, created_at: u32, x: i32, y: i32) -> Self {
+    pub fn sticky_note(id: u32, content: String, created_at: u64, x: i32, y: i32) -> Self {
         Window {
             id: WindowId::StickyNote(id as usize),
             state: WindowState::Open,
             close: WindowClose::Close,
             z_index: 0,
-            top: WindowPosition::Close(x),
-            left: WindowPosition::Close(y),
+            left: WindowPosition::Close(x),
+            top: WindowPosition::Close(y),
             width: 200,
             icon: "assets/icons/template_empty-5.png".to_string(),
             title: format!("sticky note {id}"),
             body: html!{
-                <StickyNote {content} {created_at}></StickyNote>
+                <StickyNote {id} {content} {created_at}></StickyNote>
             }
         }
     }
