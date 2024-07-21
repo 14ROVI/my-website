@@ -8,7 +8,7 @@ use yew::prelude::*;
 
 use rand::Rng;
 
-pub const MAX_BACKGROUND_INDEX: u32 = 22;
+pub const MAX_BACKGROUND_INDEX: u32 = 23;
 
 #[derive(Deserialize)]
 pub struct NoteJson {

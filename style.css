@@ -154,3 +154,58 @@ video.background {
     max-height: 100px;
     background-color: rgba(255, 255, 255, 0.4);
 }
+.history-container {
+    margin-top: 10px;
+}
+.history-container > button {
+    width: 100%;
+    position: relative;
+}
+.history-container > button::after {
+    content: url("data:image/svg+xml;charset=utf-8,<svg width='16' height='17' fill='none' xmlns='http://www.w3.org/2000/svg'><path fill-rule='evenodd' clip-rule='evenodd' d='M11 6H4v1h1v1h1v1h1v1h1V9h1V8h1V7h1V6z' fill='%23000'/></svg>");
+    bottom: 0px;
+    right: 5px;
+    position: absolute;
+}
+.history-container > button.open::after {
+    content: url("data:image/svg+xml;charset=utf-8,<svg width='16' height='17' fill='none' xmlns='http://www.w3.org/2000/svg'><path fill-rule='evenodd' clip-rule='evenodd' d='M8 6H7v1H6v1H5v1H4v1h7V9h-1V8H9V7H8V6z' fill='%23000'/></svg>");
+}
+.lastfm-scroll-container {
+    max-height: 200px;
+    overflow-y: scroll;
+}
+.lastfm-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.lastfm-container img {
+    width: 50px;
+    height: 50px;
+    position: relative;
+}
+.lastfm-container img:before {
+    content: ' ';
+    display: block;
+    position: absolute;
+    height: 50px;
+    width: 50px;
+    background-image: url("/assets/default_album.png");
+}
+.lastfm-container > div {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+}
+.lastfm-container > div > div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+}
+.lastfm-container > div > div > p {
+    margin: 0;
+    /* white-space: nowrap; */
+    /* overflow: hidden; */
+    /* text-overflow: ellipsis; */
+}

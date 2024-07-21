@@ -271,7 +271,7 @@ impl Component for Copland {
                 self.theme = theme;
                 let el = self.background_video.cast::<HtmlVideoElement>().unwrap();
                 el.load();
-                el.play().ok();
+                // el.onloadeddata().unwrap().
                 true
             }
             CoplandMsg::NewSticky => {
