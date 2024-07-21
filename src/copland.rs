@@ -208,7 +208,7 @@ impl Component for Copland {
                 self.theme = theme;
                 let el = self.background_video.cast::<HtmlVideoElement>().unwrap();
                 el.load();
-                el.play().ok();
+                // el.onloadeddata().unwrap().
                 true
             },
             CoplandMsg::OpenWindow(window) => {
@@ -420,11 +420,10 @@ impl Component for Copland {
                 >
                     <source src={format!("assets/backgrounds/{}.webm", self.theme.background)} type="video/webm"/>
                     <source src={format!("assets/backgrounds/{}.mp4", self.theme.background)} type="video/mp4"/>
-                </video>    
+                </video>
                 <div id="window-area"
                     class="window-area"
                     ref={self.window_area.clone()}
-                    // style={format!("background-image: url(assets/backgrounds/{}.gif)", self.theme.background)}
                 >
                     {
                         self.windows.values().map(|window| {

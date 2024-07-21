@@ -7,7 +7,7 @@ use copland::{Copland, Theme};
 
 use rand::Rng;
 
-pub const MAX_BACKGROUND_INDEX: u32 = 22;
+pub const MAX_BACKGROUND_INDEX: u32 = 23;
 
 #[function_component(App)]
 fn app() -> Html {
