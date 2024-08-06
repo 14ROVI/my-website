@@ -131,7 +131,7 @@ impl Component for Spotify {
                 let save_history = ctx.link().callback(Msg::SaveHistory);
 
                 spawn_local(async move {
-                    let text = Request::get("https://api.rovi.me/lastfm")
+                    let text = Request::get("https://api.rovi.me/lastfm/I4ROVI")
                         .send()
                         .await
                         .unwrap()
