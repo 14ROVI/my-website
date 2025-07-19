@@ -209,3 +209,17 @@ video.background {
     /* overflow: hidden; */
     /* text-overflow: ellipsis; */
 }
+
+.film-list {
+    display: flex;
+    gap: 10px;
+    justify-content: start;
+    flex-wrap: wrap;
+    max-height: 400px;
+}
+.film-list > div {
+    width: min-content;
+}
+.film-list img {
+    width: unset;
+}

@@ -1,5 +1,5 @@
 use web_sys::MouseEvent;
-use yew::{function_component, html, Properties, Callback};
+use yew::{function_component, html, Callback, Properties};
 
 #[derive(Properties, PartialEq)]
 pub struct HomeWindowProps {
@@ -8,11 +8,12 @@ pub struct HomeWindowProps {
     pub open_background: Callback<MouseEvent>,
     pub open_socials: Callback<MouseEvent>,
     pub open_projects: Callback<MouseEvent>,
+    pub open_films: Callback<MouseEvent>,
 }
 
 #[function_component(Home)]
 pub fn home(props: &HomeWindowProps) -> Html {
-    html!{
+    html! {
         <>
             <h4>{ "Welcome" }</h4>
             <p>{ "In short this is a nice little display of what I can code. This website is written in Rust and uses WASM and Yew." }</p>
@@ -22,6 +23,7 @@ pub fn home(props: &HomeWindowProps) -> Html {
                 <li><a href="javascript:void(0);" onclick={&props.open_spotify}>{ "See what I'm listening to on Spotify!" }</a></li>
                 <li><a href="javascript:void(0);" onclick={&props.open_background}>{ "Change the background?" }</a></li>
                 <li><a href="javascript:void(0);" onclick={&props.open_projects}>{ "My other projects.." }</a></li>
+                <li><a href="javascript:void(0);" onclick={&props.open_films}>{ "Check out my letterboxd" }</a></li>
                 <li><a href="javascript:void(0);" onclick={&props.open_socials}>{ "Add all my social links ツ" }</a></li>
             </ul>
             <br/>

@@ -1,11 +1,12 @@
-use std::fmt::Write as _; 
 use std::fmt;
-use yew::{Html, html, classes};
+use std::fmt::Write as _;
 use yew::html::Scope;
+use yew::{classes, html, Html};
 
 use crate::copland::{Copland, CoplandMsg, MoveEvent};
-use crate::windows::{Spotify, Home, AboutMe, BackgroundSelector, Socials, Projects, StickyNote};
-
+use crate::windows::{
+    AboutMe, BackgroundSelector, Films, Home, Projects, Socials, Spotify, StickyNote,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum WindowPosition {
@@ -19,7 +20,7 @@ pub enum WindowState {
     Minimised(bool), // true = maximised, false = open
     Hidden,
     Open,
-    Maximised
+    Maximised,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord)]
@@ -30,7 +31,8 @@ pub enum WindowId {
     SocialLinks,
     BackgroundSelector,
     Projects,
-    StickyNote(usize)
+    Films,
+    StickyNote(usize),
 }
 impl fmt::Display for WindowId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -41,6 +43,7 @@ impl fmt::Display for WindowId {
             Self::SocialLinks => "SocialLinks".to_string(),
             Self::BackgroundSelector => "BackgroundSelector".to_string(),
             Self::Projects => "Projects".to_string(),
+            Self::Films => "Letterboxd".to_string(),
             Self::StickyNote(index) => format!("StickyNote({})", index),
         };
         write!(f, "{}", id)
@@ -51,7 +54,7 @@ impl fmt::Display for WindowId {
 pub enum WindowClose {
     Invalid,
     Close,
-    Hide
+    Hide,
 }
 
 #[derive(Debug, Clone)]
@@ -65,15 +68,17 @@ pub struct Window {
     pub width: u32,
     pub icon: String,
     pub title: String,
-    pub body: Html
+    pub body: Html,
 }
 impl Window {
     pub fn home(link: &Scope<Copland>) -> Self {
         let open_spotify = link.callback(|_| CoplandMsg::OpenWindow(Self::spotify()));
         let open_about_me = link.callback(|_| CoplandMsg::OpenWindow(Self::about_me()));
-        let open_background = link.callback(move |_| CoplandMsg::OpenWindow(Self::background_selector()));
+        let open_background =
+            link.callback(move |_| CoplandMsg::OpenWindow(Self::background_selector()));
         let open_socials = link.callback(move |_| CoplandMsg::OpenWindow(Self::socials()));
         let open_projects = link.callback(move |_| CoplandMsg::OpenWindow(Self::projects()));
+        let open_films = link.callback(move |_| CoplandMsg::OpenWindow(Self::films()));
 
         Window {
             id: WindowId::Home,
@@ -85,9 +90,9 @@ impl Window {
             width: 400,
             icon: "assets/icons/computer_explorer-5.png".to_string(),
             title: "Home".to_string(),
-            body: html!{
-                <Home {open_background} {open_spotify} {open_about_me} {open_socials} {open_projects}></Home>
-            }
+            body: html! {
+                <Home {open_background} {open_spotify} {open_about_me} {open_socials} {open_projects} {open_films}></Home>
+            },
         }
     }
 
@@ -102,9 +107,9 @@ impl Window {
             width: 300,
             icon: "assets/icons/msg_information-0.png".to_string(),
             title: "About Me".to_string(),
-            body: html!{
+            body: html! {
                 <AboutMe></AboutMe>
-            }
+            },
         }
     }
 
@@ -119,9 +124,9 @@ impl Window {
             width: 300,
             icon: "assets/icons/spotify.svg".to_string(),
             title: "Spotify".to_string(),
-            body: html!{
+            body: html! {
                 <Spotify></Spotify>
-            }
+            },
         }
     }
 
@@ -136,9 +141,9 @@ impl Window {
             width: 300,
             icon: "assets/icons/kodak_imaging-0.png".to_string(),
             title: "Select Background".to_string(),
-            body: html!{
+            body: html! {
                 <BackgroundSelector></BackgroundSelector>
-            }
+            },
         }
     }
 
@@ -153,9 +158,9 @@ impl Window {
             width: 250,
             icon: "assets/icons/netmeeting-0.png".to_string(),
             title: "Social links ツ".to_string(),
-            body: html!{
+            body: html! {
                 <Socials></Socials>
-            }
+            },
         }
     }
 
@@ -170,9 +175,26 @@ impl Window {
             width: 350,
             icon: "assets/icons/keyboard-5.png".to_string(),
             title: "(Some) of my projects".to_string(),
-            body: html!{
+            body: html! {
                 <Projects></Projects>
-            }
+            },
+        }
+    }
+
+    pub fn films() -> Self {
+        Window {
+            id: WindowId::Films,
+            state: WindowState::Open,
+            close: WindowClose::Close,
+            z_index: 0,
+            top: WindowPosition::Half,
+            left: WindowPosition::Half,
+            width: 520,
+            icon: "assets/icons/keyboard-5.png".to_string(),
+            title: "Letterboxd".to_string(),
+            body: html! {
+                <Films></Films>
+            },
         }
     }
 
@@ -187,12 +209,11 @@ impl Window {
             width: 200,
             icon: "assets/icons/template_empty-5.png".to_string(),
             title: format!("sticky note {id}"),
-            body: html!{
+            body: html! {
                 <StickyNote {id} {content} {created_at}></StickyNote>
-            }
+            },
         }
     }
-
 
     pub fn view(&self, link: &Scope<Copland>, copland: &Copland) -> Html {
         let id = self.id;
@@ -203,13 +224,21 @@ impl Window {
             _ => {
                 let mut style = format!("width: {}px;", self.width);
                 match self.left {
-                    WindowPosition::Close(x) => {write!(style, "left: {}px;", x).ok();},
-                    WindowPosition::Half => style.push_str("left: 50%; transform: translateX(-50%);"),
+                    WindowPosition::Close(x) => {
+                        write!(style, "left: {}px;", x).ok();
+                    }
+                    WindowPosition::Half => {
+                        style.push_str("left: 50%; transform: translateX(-50%);")
+                    }
                     WindowPosition::Far => style.push_str("right: 0px;"),
                 };
                 match self.top {
-                    WindowPosition::Close(y) => {write!(style, "top: {}px;", y).ok();},
-                    WindowPosition::Half => style.push_str("top: 50%; transform: translateY(-50%);"),
+                    WindowPosition::Close(y) => {
+                        write!(style, "top: {}px;", y).ok();
+                    }
+                    WindowPosition::Half => {
+                        style.push_str("top: 50%; transform: translateY(-50%);")
+                    }
                     WindowPosition::Far => style.push_str("bottom: 0px;"),
                 };
                 if self.left == WindowPosition::Half && self.top == WindowPosition::Half {
@@ -228,7 +257,7 @@ impl Window {
 
         let window_class = match self.id {
             WindowId::StickyNote(_) => vec!["window", "sticky-note"],
-            _ => vec!["window"]
+            _ => vec!["window"],
         };
 
         html! {
@@ -255,12 +284,12 @@ impl Window {
                             onclick={link.callback(move |_| CoplandMsg::MinimiseWindow(id))}
                         ></button>
                         if self.state != WindowState::Maximised {
-                            <button 
+                            <button
                                 aria-label="Maximize"
                                 onclick={link.callback(move |_| CoplandMsg::MaximiseWindow(id))}
                             ></button>
                         } else {
-                            <button 
+                            <button
                                 aria-label="Restore"
                                 onclick={link.callback(move |_| CoplandMsg::RestoreWindow(id))}
                             ></button>
