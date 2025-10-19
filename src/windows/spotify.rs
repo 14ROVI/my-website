@@ -1,14 +1,13 @@
 use std::vec;
 
-use yew::prelude::*;
-use gloo::net::websocket::{Message as WsMessage, futures::WebSocket};
-use wasm_bindgen_futures::spawn_local;
 use futures::{channel::mpsc::UnboundedSender, SinkExt, StreamExt};
+use gloo::net::http::Request;
+use gloo::net::websocket::{futures::WebSocket, Message as WsMessage};
 use gloo::timers::callback::Interval;
 use js_sys::Date;
-use gloo::net::http::Request;
 use serde_json::Value;
-
+use wasm_bindgen_futures::spawn_local;
+use yew::prelude::*;
 
 struct LanyardData {
     album_art: String,
@@ -19,13 +18,18 @@ struct LanyardData {
     end_time: u64,
 }
 
+#[derive(Properties, PartialEq)]
+pub struct SpotifyProperties {
+    pub resize_window: Callback<Option<u32>>,
+}
+
 #[derive(Debug)]
 pub enum Msg {
     LanyardMessage(WsMessage),
     UpdateTime,
     UpdateHistory,
     SaveHistory(Vec<LastFmHistoryHOCProps>),
-    ToggleShowHistory
+    ToggleShowHistory,
 }
 
 pub struct Spotify {
@@ -34,17 +38,18 @@ pub struct Spotify {
     update_timer: Option<Interval>,
     show_history: bool,
     history: Vec<LastFmHistoryHOCProps>,
-    last_fm_current: Option<LastFmHistoryHOCProps>
+    last_fm_current: Option<LastFmHistoryHOCProps>,
 }
 impl Component for Spotify {
     type Message = Msg;
-    type Properties = ();
+    type Properties = SpotifyProperties;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let ws = WebSocket::open("wss://api.lanyard.rest/socket").expect("Couldn't connect to Lanyard ws.");
+        let ws = WebSocket::open("wss://api.lanyard.rest/socket")
+            .expect("Couldn't connect to Lanyard ws.");
         let (mut write, mut read) = ws.split();
         let (tx, mut rx) = futures::channel::mpsc::unbounded::<String>();
-        
+
         // TODO: reconnection handling incase of error
         // TODO: serde structs rather than json!!!
 
@@ -65,9 +70,7 @@ impl Component for Spotify {
 
         let link = ctx.link().clone();
         link.send_message(Msg::UpdateHistory);
-        Interval::new(10_000, move ||
-            link.send_message(Msg::UpdateHistory)
-        ).forget();
+        Interval::new(10_000, move || link.send_message(Msg::UpdateHistory)).forget();
 
         Self {
             lanyard_ws_write: tx,
@@ -87,11 +90,17 @@ impl Component for Spotify {
 
                 if op == 1 {
                     log::info!("gotta start heartbeat");
-                    
+
                     let mut tx = self.lanyard_ws_write.clone();
-                    let heartbeat_duration = data["d"]["heartbeat_interval"].as_u64().unwrap_or(30_000);
+                    let heartbeat_duration =
+                        data["d"]["heartbeat_interval"].as_u64().unwrap_or(30_000);
                     spawn_local(async move {
-                        tx.send(r#"{ "op": 2, "d": { "subscribe_to_id": "195512978634833920" } }"#.to_string()).await.unwrap();
+                        tx.send(
+                            r#"{ "op": 2, "d": { "subscribe_to_id": "195512978634833920" } }"#
+                                .to_string(),
+                        )
+                        .await
+                        .unwrap();
                     });
 
                     let tx = self.lanyard_ws_write.clone();
@@ -100,14 +109,18 @@ impl Component for Spotify {
                         spawn_local(async move {
                             tx.send(r#"{ "op": 3 }"#.to_string()).await.unwrap_or(());
                         });
-                    }).forget();
+                    })
+                    .forget();
                 } else {
                     log::info!("lanyard actual useful data: {:?}", data);
                     let data = &data["d"];
 
                     if data["listening_to_spotify"].as_bool().unwrap_or(false) {
                         self.lanyard_data = Some(LanyardData {
-                            album_art: data["spotify"]["album_art_url"].as_str().unwrap().to_string(),
+                            album_art: data["spotify"]["album_art_url"]
+                                .as_str()
+                                .unwrap()
+                                .to_string(),
                             song_name: data["spotify"]["song"].as_str().unwrap().to_string(),
                             album_name: data["spotify"]["album"].as_str().unwrap().to_string(),
                             artist_name: data["spotify"]["artist"].as_str().unwrap().to_string(),
@@ -115,7 +128,9 @@ impl Component for Spotify {
                             end_time: data["spotify"]["timestamps"]["end"].as_u64().unwrap(),
                         });
                         let link = ctx.link().clone();
-                        self.update_timer = Some(Interval::new(1_000, move || link.send_message(Msg::UpdateTime)));
+                        self.update_timer = Some(Interval::new(1_000, move || {
+                            link.send_message(Msg::UpdateTime)
+                        }));
                     } else {
                         self.lanyard_data = None;
                         self.update_timer = None;
@@ -123,10 +138,8 @@ impl Component for Spotify {
                 }
 
                 true
-            },
-            Msg::UpdateTime => {
-                true
-            },
+            }
+            Msg::UpdateTime => true,
             Msg::UpdateHistory => {
                 let save_history = ctx.link().callback(Msg::SaveHistory);
 
@@ -140,24 +153,36 @@ impl Component for Spotify {
                         .unwrap();
                     let json: Value = serde_json::from_str(&text).unwrap();
                     let tracks = json["recenttracks"]["track"].as_array().unwrap();
-                    let tracks: Vec<LastFmHistoryHOCProps> = tracks.iter().map(|t| {
-                        let t = t.clone();
-                        LastFmHistoryHOCProps {
-                            current_time: Date::now() as u64 / 1000,
-                            album_art: t["image"][3]["#text"].as_str().unwrap_or_default().to_string(),
-                            album: t["album"]["#text"].as_str().unwrap_or_default().to_string(),
-                            song: t["name"].as_str().unwrap_or_default().to_string(),
-                            artist: t["artist"]["#text"].as_str().unwrap_or_default().to_string(),
-                            listened_at: t["date"]["uts"].as_str().unwrap_or("0").parse().unwrap_or_default(),
-                        }
-                    })
-                    .collect();
+                    let tracks: Vec<LastFmHistoryHOCProps> = tracks
+                        .iter()
+                        .map(|t| {
+                            let t = t.clone();
+                            LastFmHistoryHOCProps {
+                                current_time: Date::now() as u64 / 1000,
+                                album_art: t["image"][3]["#text"]
+                                    .as_str()
+                                    .unwrap_or_default()
+                                    .to_string(),
+                                album: t["album"]["#text"].as_str().unwrap_or_default().to_string(),
+                                song: t["name"].as_str().unwrap_or_default().to_string(),
+                                artist: t["artist"]["#text"]
+                                    .as_str()
+                                    .unwrap_or_default()
+                                    .to_string(),
+                                listened_at: t["date"]["uts"]
+                                    .as_str()
+                                    .unwrap_or("0")
+                                    .parse()
+                                    .unwrap_or_default(),
+                            }
+                        })
+                        .collect();
 
                     log::info!("Updated last fm history.");
                     save_history.emit(tracks);
                 });
                 false
-            },
+            }
             Msg::SaveHistory(history) => {
                 if let Some(current) = history.iter().find(|p| p.listened_at == 0) {
                     self.last_fm_current = Some(current.clone());
@@ -166,11 +191,12 @@ impl Component for Spotify {
                 }
                 self.history = history;
                 true
-            },
+            }
             Msg::ToggleShowHistory => {
                 self.show_history = !self.show_history;
+                ctx.props().resize_window.emit(Some(400));
                 true
-            },
+            }
             _ => {
                 log::info!("not covered!");
                 false
@@ -187,27 +213,26 @@ impl Component for Spotify {
                 <div class="lastfm-container">
                     { self.history.iter()
                         .filter(|p| p.listened_at != 0)
-                        .map(|p| html! { 
+                        .map(|p| html! {
                         <LastFmHistoryHOC
                             key={p.listened_at}
                             {current_time}
-                            ..p.clone()/> 
+                            ..p.clone()/>
                     } ).collect::<Html>() }
                 </div>
             </div>
             </div>
         };
 
-        let toggle_show_history =  ctx.link().callback(|_| Msg::ToggleShowHistory);
-        let button_open = if self.show_history { 
+        let toggle_show_history = ctx.link().callback(|_| Msg::ToggleShowHistory);
+        let button_open = if self.show_history {
             Some("open")
-        } else { 
-            None 
+        } else {
+            None
         };
 
-
         let history = html! {
-            <div class="history-container">
+            <>
                 <button
                     class={classes!(button_open)}
                     onclick={toggle_show_history}
@@ -215,11 +240,10 @@ impl Component for Spotify {
                 if self.show_history {
                     { history }
                 }
-            </div>
+            </>
         };
 
         if let Some(lanyard_data) = self.lanyard_data.as_ref() {
-
             let current_time = Date::now() as u64;
             let elapsed_time = (current_time - lanyard_data.start_time) / 1000;
             let total_time = (lanyard_data.end_time - lanyard_data.start_time) / 1000;
@@ -230,46 +254,45 @@ impl Component for Spotify {
                 format!("{}:{:02}", mins, seconds)
             }
 
-            html!{
-                <div class="music-container">
-                    <div class="spotify-container">
-                        <img alt="Spotify album art" width="100" height="100" src={ lanyard_data.album_art.clone() }/>
-                        <div>
-                            <p><b>{ lanyard_data.song_name.clone() }</b></p>
-                            <p>{ "On " }{ lanyard_data.album_name.clone() }</p>
-                            <p>{ "By " }{ lanyard_data.artist_name.clone() }</p>
-                            <p id="spotify-song-duration">{ "Elapsed: " }{ format_time(elapsed_time) }{" / "}{ format_time(total_time) }</p>
-                        </div>
+            html! {
+                <>
+                <div class="spotify-container">
+                    <img alt="Spotify album art" width="100" height="100" src={ lanyard_data.album_art.clone() }/>
+                    <div>
+                        <p><b>{ lanyard_data.song_name.clone() }</b></p>
+                        <p>{ "On " }{ lanyard_data.album_name.clone() }</p>
+                        <p>{ "By " }{ lanyard_data.artist_name.clone() }</p>
+                        <p id="spotify-song-duration">{ "Elapsed: " }{ format_time(elapsed_time) }{" / "}{ format_time(total_time) }</p>
                     </div>
-                    { history }
                 </div>
+                { history }
+                </>
             }
         } else if let Some(last_fm_current) = self.last_fm_current.as_ref() {
-            html!{
-                <div class="music-container">
-                    <div class="spotify-container">
-                        <img alt="Spotify album art" width="100" height="100" src={ last_fm_current.album_art.clone() }/>
-                        <div>
-                            <p><b>{ last_fm_current.song.clone() }</b></p>
-                            <p>{ "On " }{ last_fm_current.album.clone() }</p>
-                            <p>{ "By " }{ last_fm_current.artist.clone() }</p>
-                            <p id="spotify-song-duration">{"Currently listening"}</p>
-                        </div>
+            html! {
+                <>
+                <div class="spotify-container">
+                    <img alt="Spotify album art" width="100" height="100" src={ last_fm_current.album_art.clone() }/>
+                    <div>
+                        <p><b>{ last_fm_current.song.clone() }</b></p>
+                        <p>{ "On " }{ last_fm_current.album.clone() }</p>
+                        <p>{ "By " }{ last_fm_current.artist.clone() }</p>
+                        <p id="spotify-song-duration">{"Currently listening"}</p>
                     </div>
-                    { history }
                 </div>
+                { history }
+                </>
             }
         } else {
             html! {
-                <div class="music-container">
+                <>
                     <p style="margin-bottom: 20px;">{ "Not currently listening to anything :(" }</p>
                     { history }
-                </div>
+                </>
             }
         }
     }
 }
-
 
 #[derive(Properties, PartialEq, Debug, Clone)]
 pub struct LastFmHistoryHOCProps {
@@ -337,15 +360,15 @@ pub fn last_fm_history_hoc(props: &LastFmHistoryHOCProps) -> Html {
             song={props.song.clone()}
             artist={props.artist.clone()}
             formatted_time={formatted_time}
-        /> 
+        />
     }
 }
 
 #[function_component(LastFmHistory)]
 pub fn last_fm_history(props: &LastFmHistoryProps) -> Html {
-    html!{
+    html! {
         <div>
-            <img 
+            <img
                 alt="Track album art"
                 width="50"
                 height="50"

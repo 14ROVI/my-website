@@ -7,7 +7,6 @@ use gloo::net::http::Request;
 use gloo::timers::callback::Interval;
 use gloo::utils::{document, window as browser_window};
 use js_sys::Date;
-use serde::Deserialize;
 use urlencoding::encode;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
@@ -88,6 +87,7 @@ pub enum CoplandMsg {
     OpenWindow(Window),
     FocusWindow(WindowId),
     CloseWindow(WindowId),
+    ResizeWindow(WindowId, Option<u32>),
     DragWindowStart(WindowId, MoveEvent),
     DragWindowMove(WindowId, MoveEvent),
     DragWindowEnd(WindowId, MoveEvent),
@@ -363,6 +363,14 @@ impl Component for Copland {
                     self.focused_window = window.id;
                     self.max_z_index += 1;
                     window.z_index = self.max_z_index;
+                }
+                true
+            }
+            CoplandMsg::ResizeWindow(window_id, new_height) => {
+                log::info!("resizing window");
+
+                if let Some(window) = self.windows.get_mut(&window_id) {
+                    window.height = new_height;
                 }
                 true
             }

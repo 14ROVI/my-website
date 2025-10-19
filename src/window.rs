@@ -66,19 +66,22 @@ pub struct Window {
     pub top: WindowPosition,
     pub left: WindowPosition,
     pub width: u32,
+    pub height: Option<u32>,
     pub icon: String,
     pub title: String,
     pub body: Html,
 }
 impl Window {
     pub fn home(link: &Scope<Copland>) -> Self {
-        let open_spotify = link.callback(|_| CoplandMsg::OpenWindow(Self::spotify()));
+        let spotify_link = link.clone();
+        let open_spotify =
+            link.callback(move |_| CoplandMsg::OpenWindow(Self::spotify(&spotify_link)));
         let open_about_me = link.callback(|_| CoplandMsg::OpenWindow(Self::about_me()));
         let open_background =
-            link.callback(move |_| CoplandMsg::OpenWindow(Self::background_selector()));
-        let open_socials = link.callback(move |_| CoplandMsg::OpenWindow(Self::socials()));
-        let open_projects = link.callback(move |_| CoplandMsg::OpenWindow(Self::projects()));
-        let open_films = link.callback(move |_| CoplandMsg::OpenWindow(Self::films()));
+            link.callback(|_| CoplandMsg::OpenWindow(Self::background_selector()));
+        let open_socials = link.callback(|_| CoplandMsg::OpenWindow(Self::socials()));
+        let open_projects = link.callback(|_| CoplandMsg::OpenWindow(Self::projects()));
+        let open_films = link.callback(|_| CoplandMsg::OpenWindow(Self::films()));
 
         Window {
             id: WindowId::Home,
@@ -88,6 +91,7 @@ impl Window {
             top: WindowPosition::Half,
             left: WindowPosition::Half,
             width: 400,
+            height: None,
             icon: "assets/icons/computer_explorer-5.png".to_string(),
             title: "Home".to_string(),
             body: html! {
@@ -105,6 +109,7 @@ impl Window {
             top: WindowPosition::Half,
             left: WindowPosition::Half,
             width: 300,
+            height: None,
             icon: "assets/icons/msg_information-0.png".to_string(),
             title: "About Me".to_string(),
             body: html! {
@@ -113,7 +118,10 @@ impl Window {
         }
     }
 
-    pub fn spotify() -> Self {
+    pub fn spotify(link: &Scope<Copland>) -> Self {
+        let resize_window =
+            link.callback(|new_height| CoplandMsg::ResizeWindow(WindowId::Spotify, new_height));
+
         Window {
             id: WindowId::Spotify,
             state: WindowState::Open,
@@ -122,10 +130,11 @@ impl Window {
             top: WindowPosition::Close(0),
             left: WindowPosition::Far,
             width: 300,
+            height: None,
             icon: "assets/icons/spotify.svg".to_string(),
             title: "Spotify".to_string(),
             body: html! {
-                <Spotify></Spotify>
+                <Spotify {resize_window}></Spotify>
             },
         }
     }
@@ -139,6 +148,7 @@ impl Window {
             top: WindowPosition::Close(0),
             left: WindowPosition::Close(0),
             width: 300,
+            height: None,
             icon: "assets/icons/kodak_imaging-0.png".to_string(),
             title: "Select Background".to_string(),
             body: html! {
@@ -156,6 +166,7 @@ impl Window {
             top: WindowPosition::Far,
             left: WindowPosition::Half,
             width: 250,
+            height: None,
             icon: "assets/icons/netmeeting-0.png".to_string(),
             title: "Social links ツ".to_string(),
             body: html! {
@@ -173,6 +184,7 @@ impl Window {
             top: WindowPosition::Half,
             left: WindowPosition::Half,
             width: 350,
+            height: None,
             icon: "assets/icons/keyboard-5.png".to_string(),
             title: "(Some) of my projects".to_string(),
             body: html! {
@@ -190,6 +202,7 @@ impl Window {
             top: WindowPosition::Half,
             left: WindowPosition::Half,
             width: 520,
+            height: None,
             icon: "assets/icons/keyboard-5.png".to_string(),
             title: "Letterboxd".to_string(),
             body: html! {
@@ -207,6 +220,7 @@ impl Window {
             left: WindowPosition::Close(x),
             top: WindowPosition::Close(y),
             width: 200,
+            height: None,
             icon: "assets/icons/template_empty-5.png".to_string(),
             title: format!("sticky note {id}"),
             body: html! {
@@ -223,6 +237,9 @@ impl Window {
             WindowState::Minimised(_) | WindowState::Hidden => "display: none;".to_string(),
             _ => {
                 let mut style = format!("width: {}px;", self.width);
+                if let Some(height) = self.height {
+                    write!(style, "height: {}px;", height).ok();
+                }
                 match self.left {
                     WindowPosition::Close(x) => {
                         write!(style, "left: {}px;", x).ok();

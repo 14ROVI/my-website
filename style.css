@@ -94,8 +94,6 @@ video.background {
     flex-direction: column;
 }
 .window-body {
-    overflow-y: auto;
-    max-height: -webkit-fill-available;
     margin: 0px;
     padding: 8px;
 }
