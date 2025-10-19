@@ -5,7 +5,7 @@ use yew::{classes, html, Html};
 
 use crate::copland::{Copland, CoplandMsg, MoveEvent};
 use crate::windows::{
-    AboutMe, BackgroundSelector, Films, Home, Projects, Socials, Spotify, StickyNote,
+    AboutMe, BackgroundSelector, Films, Home, PhotoViewer, Projects, Socials, Spotify, StickyNote,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -32,6 +32,7 @@ pub enum WindowId {
     BackgroundSelector,
     Projects,
     Films,
+    PhotoViewer,
     StickyNote(usize),
 }
 impl fmt::Display for WindowId {
@@ -44,6 +45,7 @@ impl fmt::Display for WindowId {
             Self::BackgroundSelector => "BackgroundSelector".to_string(),
             Self::Projects => "Projects".to_string(),
             Self::Films => "Letterboxd".to_string(),
+            Self::PhotoViewer => "Photo Viewer".to_string(),
             Self::StickyNote(index) => format!("StickyNote({})", index),
         };
         write!(f, "{}", id)
@@ -82,6 +84,7 @@ impl Window {
         let open_socials = link.callback(|_| CoplandMsg::OpenWindow(Self::socials()));
         let open_projects = link.callback(|_| CoplandMsg::OpenWindow(Self::projects()));
         let open_films = link.callback(|_| CoplandMsg::OpenWindow(Self::films()));
+        let open_photo_viewer = link.callback(|_| CoplandMsg::OpenWindow(Self::photo_viewer()));
 
         Window {
             id: WindowId::Home,
@@ -95,7 +98,7 @@ impl Window {
             icon: "assets/icons/computer_explorer-5.png".to_string(),
             title: "Home".to_string(),
             body: html! {
-                <Home {open_background} {open_spotify} {open_about_me} {open_socials} {open_projects} {open_films}></Home>
+                <Home {open_background} {open_spotify} {open_about_me} {open_socials} {open_projects} {open_films} {open_photo_viewer}></Home>
             },
         }
     }
@@ -203,7 +206,7 @@ impl Window {
             left: WindowPosition::Half,
             width: 520,
             height: Some(400),
-            icon: "assets/icons/keyboard-5.png".to_string(),
+            icon: "assets/icons/camera3_vid-2.png".to_string(),
             title: "Letterboxd".to_string(),
             body: html! {
                 <Films></Films>
@@ -225,6 +228,24 @@ impl Window {
             title: format!("sticky note {id}"),
             body: html! {
                 <StickyNote {id} {content} {created_at}></StickyNote>
+            },
+        }
+    }
+
+    pub fn photo_viewer() -> Self {
+        Window {
+            id: WindowId::PhotoViewer,
+            state: WindowState::Open,
+            close: WindowClose::Close,
+            z_index: 0,
+            left: WindowPosition::Half,
+            top: WindowPosition::Half,
+            width: 500,
+            height: None,
+            icon: "assets/icons/kodak_imaging-0.png".to_string(),
+            title: "Photo Viewer".to_string(),
+            body: html! {
+                <PhotoViewer></PhotoViewer>
             },
         }
     }

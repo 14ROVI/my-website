@@ -101,7 +101,7 @@ video.background {
     min-height: 0;
     overflow-y: auto;
 }
-.window-body::-webkit-scrollbar-button {
+*::-webkit-scrollbar-button {
     display: none;
 }
 .title-bar-text-icon {
@@ -215,9 +215,6 @@ video.background {
 }
 .lastfm-container > div > div > p {
     margin: 0;
-    /* white-space: nowrap; */
-    /* overflow: hidden; */
-    /* text-overflow: ellipsis; */
 }
 
 .film-list {
@@ -234,4 +231,57 @@ film-list > div:last {
 }
 .film-list img {
     width: 100%;
+}
+
+.pp {
+    width: 100%;
+}
+.pp img {
+    max-width: unset;
+    max-height: 500px;
+}
+.photo-window {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0 auto;
+    min-width: 0;
+    max-width: 1000px;
+}
+.photo-path {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: #fff;
+    border-radius: 0;
+    box-shadow: inset -1px -1px #fff, inset 1px 1px grey, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+    box-sizing: border-box;
+    padding: 3px 4px;
+    width: fit-content;
+    margin: 0 auto;
+}
+.photo-controls {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
+}
+.photo-selector-container {
+    padding: 5px 5px 0 5px;
+    box-shadow: inset -1px -1px #fff, inset 1px 1px grey, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+}
+.photo-selector {
+	display: flex;
+    flex-direction: row;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: 100px;
+    gap: 5px;
+}
+.photo-selector .selected {
+    margin: 0 5px;
+    padding: 2px 5px;
+    margin: -1px;
+    box-shadow: inset 1px 1px #fff, inset -1px -1px grey, inset 2px 2px #dfdfdf, inset -2px -2px #0a0a0a;
 }

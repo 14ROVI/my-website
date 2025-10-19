@@ -21,3 +21,6 @@ pub use sticky_note::StickyNote;
 
 mod films;
 pub use films::Films;
+
+mod photo_viewer;
+pub use photo_viewer::PhotoViewer;
