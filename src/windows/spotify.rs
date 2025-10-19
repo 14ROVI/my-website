@@ -194,7 +194,10 @@ impl Component for Spotify {
             }
             Msg::ToggleShowHistory => {
                 self.show_history = !self.show_history;
-                ctx.props().resize_window.emit(Some(400));
+                match self.show_history {
+                    true => ctx.props().resize_window.emit(Some(300)),
+                    false => ctx.props().resize_window.emit(None),
+                };
                 true
             }
             _ => {
@@ -206,44 +209,10 @@ impl Component for Spotify {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let current_time = Date::now() as u64 / 1000;
-
-        let history = html! {
-            <div class="status-bar-field">
-            <div class="lastfm-scroll-container">
-                <div class="lastfm-container">
-                    { self.history.iter()
-                        .filter(|p| p.listened_at != 0)
-                        .map(|p| html! {
-                        <LastFmHistoryHOC
-                            key={p.listened_at}
-                            {current_time}
-                            ..p.clone()/>
-                    } ).collect::<Html>() }
-                </div>
-            </div>
-            </div>
-        };
-
         let toggle_show_history = ctx.link().callback(|_| Msg::ToggleShowHistory);
-        let button_open = if self.show_history {
-            Some("open")
-        } else {
-            None
-        };
+        let button_open = self.show_history.then_some("open");
 
-        let history = html! {
-            <>
-                <button
-                    class={classes!(button_open)}
-                    onclick={toggle_show_history}
-                >{"History"}</button>
-                if self.show_history {
-                    { history }
-                }
-            </>
-        };
-
-        if let Some(lanyard_data) = self.lanyard_data.as_ref() {
+       let currently_playing = if let Some(lanyard_data) = self.lanyard_data.as_ref() {
             let current_time = Date::now() as u64;
             let elapsed_time = (current_time - lanyard_data.start_time) / 1000;
             let total_time = (lanyard_data.end_time - lanyard_data.start_time) / 1000;
@@ -255,7 +224,6 @@ impl Component for Spotify {
             }
 
             html! {
-                <>
                 <div class="spotify-container">
                     <img alt="Spotify album art" width="100" height="100" src={ lanyard_data.album_art.clone() }/>
                     <div>
@@ -265,12 +233,9 @@ impl Component for Spotify {
                         <p id="spotify-song-duration">{ "Elapsed: " }{ format_time(elapsed_time) }{" / "}{ format_time(total_time) }</p>
                     </div>
                 </div>
-                { history }
-                </>
             }
         } else if let Some(last_fm_current) = self.last_fm_current.as_ref() {
             html! {
-                <>
                 <div class="spotify-container">
                     <img alt="Spotify album art" width="100" height="100" src={ last_fm_current.album_art.clone() }/>
                     <div>
@@ -280,17 +245,42 @@ impl Component for Spotify {
                         <p id="spotify-song-duration">{"Currently listening"}</p>
                     </div>
                 </div>
-                { history }
-                </>
             }
         } else {
             html! {
-                <>
-                    <p style="margin-bottom: 20px;">{ "Not currently listening to anything :(" }</p>
-                    { history }
-                </>
+                <p style="margin-bottom: 20px;">{ "Not currently listening to anything :(" }</p>
             }
-        }
+        };
+
+        return html! {
+            <>
+                { currently_playing }
+                <button
+                    id="lastfm-history-button"
+                    class={classes!(button_open)}
+                    onclick={toggle_show_history}
+                >
+                    {"History"}
+                </button>
+                if self.show_history {
+                    <div class="lastfm-scroll-container">
+                        <div class="lastfm-container">
+                            { 
+                                self.history.iter()
+                                .filter(|p| p.listened_at != 0)
+                                .map(|p| html! {
+                                    <LastFmHistoryHOC
+                                        key={p.listened_at}
+                                        {current_time}
+                                        ..p.clone()
+                                    />
+                                } ).collect::<Html>() 
+                            }
+                        </div>
+                    </div>
+                }
+            </>
+        };
     }
 }
 

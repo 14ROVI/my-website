@@ -96,6 +96,13 @@ video.background {
 .window-body {
     margin: 0px;
     padding: 8px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+}
+.window-body::-webkit-scrollbar-button {
+    display: none;
 }
 .title-bar-text-icon {
     display: flex;
@@ -155,21 +162,25 @@ video.background {
 .history-container {
     margin-top: 10px;
 }
-.history-container > button {
+#lastfm-history-button {
     width: 100%;
     position: relative;
 }
-.history-container > button::after {
+#lastfm-history-button::after {
+/* .history-container > button::after { */
     content: url("data:image/svg+xml;charset=utf-8,<svg width='16' height='17' fill='none' xmlns='http://www.w3.org/2000/svg'><path fill-rule='evenodd' clip-rule='evenodd' d='M11 6H4v1h1v1h1v1h1v1h1V9h1V8h1V7h1V6z' fill='%23000'/></svg>");
     bottom: 0px;
     right: 5px;
     position: absolute;
 }
-.history-container > button.open::after {
+#lastfm-history-button.open::after {
+/* .history-container > button.open::after { */
     content: url("data:image/svg+xml;charset=utf-8,<svg width='16' height='17' fill='none' xmlns='http://www.w3.org/2000/svg'><path fill-rule='evenodd' clip-rule='evenodd' d='M8 6H7v1H6v1H5v1H4v1h7V9h-1V8H9V7H8V6z' fill='%23000'/></svg>");
 }
 .lastfm-scroll-container {
-    max-height: 200px;
+    box-shadow: inset -1px -1px #dfdfdf, inset 1px 1px grey;
+    margin: 0;
+    padding: 2px 3px;
     overflow-y: scroll;
 }
 .lastfm-container {
@@ -214,6 +225,7 @@ video.background {
     justify-content: start;
     flex-wrap: wrap;
     max-height: 400px;
+    /* overflow-y: scroll; */
 }
 .film-list > div {
     width: min-content;
