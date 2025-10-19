@@ -1,10 +1,5 @@
-use gloo::net::http::Request;
-use gloo::utils::document;
 use js_sys::Date;
-use urlencoding::encode;
-use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
-use wasm_bindgen_futures::spawn_local;
 use web_sys::{Element, HtmlTextAreaElement};
 use yew::{function_component, html, use_node_ref, use_state, Callback, Properties};
 
@@ -25,7 +20,6 @@ pub fn sticky_note(props: &StickyNoteProps) -> Html {
     let textarea = use_node_ref();
     let height = use_state(|| 5);
     let content = use_state(|| props.content.clone());
-    let content_value = (*content).clone();
 
     let onkeyup = {
         let id = props.id;
@@ -52,8 +46,6 @@ pub fn sticky_note(props: &StickyNoteProps) -> Html {
             log::info!("resized + updated content!");
         })
     };
-
-    // log::info!("{:?}", (*content).clone());
 
     html! {
         <>

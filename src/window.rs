@@ -202,7 +202,7 @@ impl Window {
             top: WindowPosition::Half,
             left: WindowPosition::Half,
             width: 520,
-            height: None,
+            height: Some(400),
             icon: "assets/icons/keyboard-5.png".to_string(),
             title: "Letterboxd".to_string(),
             body: html! {

@@ -163,6 +163,7 @@ video.background {
     margin-top: 10px;
 }
 #lastfm-history-button {
+    margin-top: 10px;
     width: 100%;
     position: relative;
 }
@@ -224,7 +225,7 @@ video.background {
     gap: 10px;
     justify-content: start;
     flex-wrap: wrap;
-    max-height: 400px;
+    /* max-height: 400px; */
     /* overflow-y: scroll; */
 }
 .film-list > div {

@@ -90,7 +90,7 @@ pub enum CoplandMsg {
     ResizeWindow(WindowId, Option<u32>),
     DragWindowStart(WindowId, MoveEvent),
     DragWindowMove(WindowId, MoveEvent),
-    DragWindowEnd(WindowId, MoveEvent),
+    DragWindowEnd(WindowId),
     MinimiseWindow(WindowId),
     MaximiseWindow(WindowId),
     RestoreWindow(WindowId),
@@ -406,7 +406,7 @@ impl Component for Copland {
 
                             let on_mouse_up = ctx
                                 .link()
-                                .callback(move |e| CoplandMsg::DragWindowEnd(window_id, e));
+                                .callback(move |_| CoplandMsg::DragWindowEnd(window_id));
                             let listener =
                                 EventListener::new(&browser_window(), "mouseup", move |e| {
                                     let event = e.dyn_ref::<MouseEvent>().unwrap();
@@ -426,7 +426,7 @@ impl Component for Copland {
 
                             let on_touch_up = ctx
                                 .link()
-                                .callback(move |e| CoplandMsg::DragWindowEnd(window_id, e));
+                                .callback(move |_| CoplandMsg::DragWindowEnd(window_id));
                             let listener =
                                 EventListener::new(&browser_window(), "touchend", move |e| {
                                     let event = e.dyn_ref::<TouchEvent>().unwrap();
@@ -469,7 +469,7 @@ impl Component for Copland {
                 }
                 false
             }
-            CoplandMsg::DragWindowEnd(window_id, _) => {
+            CoplandMsg::DragWindowEnd(window_id) => {
                 log::info!("stopped dragging window");
                 self.mouse_move_listener = None;
                 self.mouse_up_listener = None;
@@ -527,11 +527,10 @@ impl Component for Copland {
                 if let WindowId::StickyNote(id) = window_id {
                     log::info!("deleted sticky note");
                     spawn_local(async move {
-                        let resp =
-                            Request::delete(format!("https://api.rovi.me/notes/{}", id).as_str())
-                                .send()
-                                .await
-                                .ok();
+                        Request::delete(format!("https://api.rovi.me/notes/{}", id).as_str())
+                            .send()
+                            .await
+                            .ok();
                     });
                 }
 

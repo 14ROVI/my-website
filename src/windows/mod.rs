@@ -14,10 +14,10 @@ mod socials;
 pub use socials::Socials;
 
 mod projects;
-pub use projects::{Project, Projects};
+pub use projects::Projects;
 
 mod sticky_note;
-pub use sticky_note::{StickyNote, StickyNoteProps};
+pub use sticky_note::StickyNote;
 
 mod films;
 pub use films::Films;

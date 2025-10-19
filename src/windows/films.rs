@@ -1,5 +1,5 @@
 use gloo::net::http::Request;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 use wasm_bindgen_futures::spawn_local;
 
 use yew::{
@@ -41,19 +41,25 @@ pub fn films() -> Html {
         );
     }
 
-    html! {
-        <div class="film-list">
-            { (*films).clone().iter().map(|f| html! {
-                <FilmComponent film={f.clone()} />
-                }).collect::<Html>()
-            }
-        </div>
+    if films.is_empty() {
+        html! {
+            <p>{ "Loading..." }</p>
+        }
+    } else {
+        html! {
+            <div class="film-list">
+                { (*films).clone().iter().map(|f| html! {
+                    <FilmComponent film={f.clone()} />
+                    }).collect::<Html>()
+                }
+            </div>
+        }
     }
 }
 
 #[derive(Properties, PartialEq, Eq)]
 pub struct FilmComponentProps {
-    pub film: Film,
+    film: Film, 
 }
 #[function_component(FilmComponent)]
 pub fn film(props: &FilmComponentProps) -> Html {
