@@ -46,7 +46,7 @@ pub fn photo_viewer() -> Html {
                 // current photo
                 <div class="photo-path">
                 <span>{format!("C:/home/roan/photos/{}", photo)}</span><br/>
-                <img alt="Cloud" src={format!("assets/photo_gallery/{}", photo)}/>
+                <img src={format!("assets/photo_gallery/{}", photo)}/>
                 </div>
             </div>
             <div class="photo-controls">
@@ -59,7 +59,14 @@ pub fn photo_viewer() -> Html {
                     // photos
                     {
                         images.into_iter().enumerate().map(|(i, image)| html! {
-                            <img class={(i==*photo_id).then_some("selected")} src={format!("assets/photo_gallery/{}", image)}/>
+                            <img
+                                class={(i==*photo_id).then_some("selected")}
+                                onclick={{
+                                    let photo_id = photo_id.clone();
+                                    Callback::from(move |_| photo_id.set(i))
+                                }}
+                                src={format!("assets/photo_gallery/{}", image)}
+                            />
                         }).collect::<Html>()
                     }
                 </div>
