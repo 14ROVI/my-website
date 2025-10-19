@@ -221,16 +221,17 @@ video.background {
 }
 
 .film-list {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 150px);
     gap: 10px;
-    justify-content: start;
-    flex-wrap: wrap;
-    /* max-height: 400px; */
-    /* overflow-y: scroll; */
+    justify-content: space-between
 }
 .film-list > div {
-    width: min-content;
+    width: 100%;
+}
+film-list > div:last {
+    flex-grow: 10000;
 }
 .film-list img {
-    width: unset;
+    width: 100%;
 }

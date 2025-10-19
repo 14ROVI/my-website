@@ -1,5 +1,7 @@
 use gloo::net::http::Request;
+use js_sys::Date;
 use serde::{Deserialize};
+use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
 use yew::{
@@ -47,12 +49,15 @@ pub fn films() -> Html {
         }
     } else {
         html! {
-            <div class="film-list">
-                { (*films).clone().iter().map(|f| html! {
-                    <FilmComponent film={f.clone()} />
-                    }).collect::<Html>()
-                }
-            </div>
+            <>
+                <h4>{"Films I've Watched"}</h4>
+                <div class="film-list">
+                    { (*films).clone().iter().map(|f| html! {
+                        <FilmComponent film={f.clone()} />
+                        }).collect::<Html>()
+                    }
+                </div>
+            </>
         }
     }
 }
@@ -64,11 +69,21 @@ pub struct FilmComponentProps {
 #[function_component(FilmComponent)]
 pub fn film(props: &FilmComponentProps) -> Html {
     let film = &props.film;
+    let whole_rating = film.rating / 2;
+    let stars = std::iter::repeat("★").take(whole_rating as usize).collect::<String>();
+    let half = film.rating % 2 == 1;
+
+    let watched_at = Date::new(&JsValue::from(&film.watched_at))
+        .to_locale_date_string("en-GB", &JsValue::UNDEFINED);
 
     html! {
         <div>
             <img alt="Film poster art" src={film.poster_url.clone()}/>
-            <p><b>{film.name.clone()}</b></p>
+            <div style="display:flex; justify-content: space-between; margin-bottom: 2px;">
+                <span>{stars}{half.then_some("½").unwrap_or("")}</span>
+                <span>{watched_at}</span>
+            </div>
+            <span><b>{film.name.clone()}</b></span>
         </div>
     }
 }

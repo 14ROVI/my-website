@@ -194,10 +194,7 @@ impl Component for Spotify {
             }
             Msg::ToggleShowHistory => {
                 self.show_history = !self.show_history;
-                match self.show_history {
-                    true => ctx.props().resize_window.emit(Some(300)),
-                    false => ctx.props().resize_window.emit(None),
-                };
+                ctx.props().resize_window.emit(self.show_history.then_some(350));
                 true
             }
             _ => {
@@ -248,7 +245,7 @@ impl Component for Spotify {
             }
         } else {
             html! {
-                <p style="margin-bottom: 20px;">{ "Not currently listening to anything :(" }</p>
+                <p>{ "Not currently listening to anything :(" }</p>
             }
         };
 
