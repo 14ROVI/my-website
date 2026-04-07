@@ -26,7 +26,7 @@ pub fn films() -> Html {
             move |_| {
                 let films = films.clone();
                 spawn_local(async move {
-                    let fetched_films: Vec<Film> = Request::get("https://api.rovi.me/films")
+                    let fetched_films: Vec<Film> = Request::get("https://api.rovi.me/films/")
                         .send()
                         .await
                         .unwrap()
