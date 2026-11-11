@@ -5,7 +5,7 @@ use yew::{classes, html, Html};
 
 use crate::copland::{Copland, CoplandMsg, MoveEvent};
 use crate::windows::{
-    AboutMe, BackgroundSelector, Films, Home, PhotoViewer, Projects, Socials, Spotify, StickyNote,
+    AboutMe, BackgroundSelector, Films, Home, Paint, PhotoViewer, Projects, Socials, Spotify, StickyNote,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -33,6 +33,7 @@ pub enum WindowId {
     Projects,
     Films,
     PhotoViewer,
+    Paint,
     StickyNote(usize),
 }
 impl fmt::Display for WindowId {
@@ -45,6 +46,7 @@ impl fmt::Display for WindowId {
             Self::BackgroundSelector => "BackgroundSelector".to_string(),
             Self::Projects => "Projects".to_string(),
             Self::Films => "Letterboxd".to_string(),
+            Self::Paint => "Paint".to_string(),
             Self::PhotoViewer => "Photo Viewer".to_string(),
             Self::StickyNote(index) => format!("StickyNote({})", index),
         };
@@ -84,6 +86,7 @@ impl Window {
         let open_socials = link.callback(|_| CoplandMsg::OpenWindow(Self::socials()));
         let open_projects = link.callback(|_| CoplandMsg::OpenWindow(Self::projects()));
         let open_films = link.callback(|_| CoplandMsg::OpenWindow(Self::films()));
+        let open_paint = link.callback(|_| CoplandMsg::OpenWindow(Self::paint()));
         let open_photo_viewer = link.callback(|_| CoplandMsg::OpenWindow(Self::photo_viewer()));
 
         Window {
@@ -98,7 +101,7 @@ impl Window {
             icon: "assets/icons/computer_explorer-5.png".to_string(),
             title: "Home".to_string(),
             body: html! {
-                <Home {open_background} {open_spotify} {open_about_me} {open_socials} {open_projects} {open_films} {open_photo_viewer}></Home>
+                <Home {open_background} {open_spotify} {open_about_me} {open_socials} {open_projects} {open_films} {open_photo_viewer} {open_paint}></Home>
             },
         }
     }
@@ -232,6 +235,22 @@ impl Window {
         }
     }
 
+    pub fn paint() -> Self {
+        Window {
+            id: WindowId::Paint,
+            state: WindowState::Open,
+            close: WindowClose::Hide,
+            z_index: 0,
+            left: WindowPosition::Half,
+            top: WindowPosition::Half,
+            width: 780,
+            height: None,
+            icon: "assets/icons/kodak_imaging-0.png".to_string(),
+            title: "Shared canvas - Microsoft Paint".to_string(),
+            body: html! { <Paint /> },
+        }
+    }
+
     pub fn photo_viewer() -> Self {
         Window {
             id: WindowId::PhotoViewer,
@@ -294,6 +313,7 @@ impl Window {
         }
 
         let window_class = match self.id {
+            WindowId::Paint => vec!["window", "paint-window"],
             WindowId::StickyNote(_) => vec!["window", "sticky-note"],
             _ => vec!["window"],
         };

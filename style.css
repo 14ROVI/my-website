@@ -285,3 +285,27 @@ film-list > div:last {
     margin: -1px;
     box-shadow: inset 1px 1px #fff, inset -1px -1px grey, inset 2px 2px #dfdfdf, inset -2px -2px #0a0a0a;
 }
+/* Paint shares the desktop's Windows 98 controls. */
+.paint-window { max-height: 100%; }
+.paint-window > .window-body { flex: 1; }
+.paint { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.paint-actions, .paint-colours { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.paint-actions button { min-width: 60px; }
+.paint-workspace { display: flex; gap: 8px; min-height: 0; }
+.paint-tools { display: flex; flex-direction: column; gap: 4px; width: 88px; flex-shrink: 0; }
+.paint-tools button { min-width: 0; padding: 4px; }
+.paint-tools input { width: 100%; margin: 4px 0; }
+.paint-selected, .paint-selected:not(:disabled):active {
+    box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px grey;
+}
+.paint-tools .paint-selected { background: #dfdfdf; font-weight: bold; }
+.paint-paper { min-width: 0; flex: 1; background: #808080; padding: 3px; align-self: flex-start; box-shadow: inset 1px 1px #0a0a0a, 1px 1px #fff; }
+.paint-paper canvas { display: block; width: 100%; height: auto; background: white; cursor: crosshair; touch-action: none; }
+.paint-paper canvas:focus-visible { outline: 2px dotted #000080; outline-offset: 1px; }
+.paint-colours input[type="color"] { width: 36px; height: 32px; padding: 2px; }
+.paint-palette { display: grid; grid-template-columns: repeat(8, 22px); gap: 2px; }
+.paint-palette button { min-width: 0; width: 22px; height: 22px; min-height: 0; padding: 0; }
+.paint-palette button[aria-pressed="true"] { outline: 1px dotted black; outline-offset: 1px; }
+.paint .status-bar-field { margin: 0; }
+.paint-surface { position: relative; }
+.paint-paper .paint-preview { position: absolute; inset: 0; background: transparent; pointer-events: none; }

@@ -12,7 +12,7 @@ wasm-logger = "0.2.0"
 gloo = "0.8.0"
 gloo-net = { version = "0.2.6", features = ["json"] }
 wasm-bindgen = "0.2.83"
-web-sys = { version = "0.3.60", features = ["DomRect", "Element", "Touch", "TouchList", "TouchEvent", "HtmlAudioElement", "HtmlMediaElement", "HtmlButtonElement", "HtmlVideoElement", "HtmlMediaElement", "HtmlTextAreaElement"] }
+web-sys = { version = "0.3.60", features = ["DomRect", "Element", "Touch", "TouchList", "TouchEvent", "HtmlAudioElement", "HtmlMediaElement", "HtmlButtonElement", "HtmlVideoElement", "HtmlMediaElement", "HtmlTextAreaElement", "CanvasRenderingContext2d", "HtmlCanvasElement", "ImageData", "PointerEvent", "HtmlInputElement", "HtmlAnchorElement", "KeyboardEvent", "WebSocket", "BinaryType", "MessageEvent", "Location"] }
 rand = "0.8.5"
 getrandom = { version = "0.2", features = ["js"] }
 wasm-bindgen-futures = "0.4.33"
