@@ -89,7 +89,7 @@ pub enum CoplandMsg {
     CloseWindow(WindowId),
     ResizeWindow(WindowId, Option<u32>),
     DragWindowStart(WindowId, MoveEvent),
-    DragWindowMove(WindowId, MoveEvent),
+    DragWindowMove(MoveEvent),
     DragWindowEnd(WindowId),
     MinimiseWindow(WindowId),
     MaximiseWindow(WindowId),
@@ -99,6 +99,14 @@ pub enum CoplandMsg {
     UpdateTaskbarTime,
 }
 
+struct WindowDrag {
+    element: HtmlElement,
+    origin: (i32, i32),
+    pointer: (i32, i32),
+    bounds: (i32, i32),
+    position: Option<(i32, i32)>,
+}
+
 pub struct Copland {
     windows: BTreeMap<WindowId, Window>,
     max_z_index: u32,
@@ -106,15 +114,13 @@ pub struct Copland {
     window_area: NodeRef,
     background_video: NodeRef,
     taskbar_time: String,
-    mouse_offset_x: i32,
-    mouse_offset_y: i32,
+    drag: Option<WindowDrag>,
     theme: ThemeContext,
     _theme_listener: ContextHandle<ThemeContext>,
     mouse_move_listener: Option<EventListener>,
     mouse_up_listener: Option<EventListener>,
     touch_move_listener: Option<EventListener>,
     touch_up_listener: Option<EventListener>,
-    did_move: bool,
 }
 impl Copland {
     fn view_taskbar_button(&self, window: &Window, link: &Scope<Self>) -> Html {
@@ -253,15 +259,13 @@ impl Component for Copland {
             window_area: NodeRef::default(),
             background_video: NodeRef::default(),
             taskbar_time: get_time_string(),
-            mouse_offset_x: 0,
-            mouse_offset_y: 0,
+            drag: None,
             theme,
             _theme_listener: theme_listener,
             mouse_move_listener: None,
             mouse_up_listener: None,
             touch_move_listener: None,
             touch_up_listener: None,
-            did_move: false,
         }
     }
 
@@ -386,17 +390,33 @@ impl Component for Copland {
                         {
                             e.prevent_default();
 
-                            if let Some(window_el) =
-                                document().get_element_by_id(&format!("window-{}", window_id))
-                            {
-                                let rec = window_el.get_bounding_client_rect();
-                                self.mouse_offset_x = rec.left() as i32 - e.client_x();
-                                self.mouse_offset_y = rec.top() as i32 - e.client_y();
-                            }
+                            let Some(element) = document()
+                                .get_element_by_id(&format!("window-{}", window_id))
+                                .and_then(|element| element.dyn_into::<HtmlElement>().ok())
+                            else {
+                                return false;
+                            };
+                            let Some(area) = self.window_area.cast::<Element>() else {
+                                return false;
+                            };
+                            let rect = element.get_bounding_client_rect();
+                            let area_rect = area.get_bounding_client_rect();
+                            self.drag = Some(WindowDrag {
+                                origin: (
+                                    (rect.left() - area_rect.left()).round() as i32,
+                                    (rect.top() - area_rect.top()).round() as i32,
+                                ),
+                                pointer: (e.client_x(), e.client_y()),
+                                bounds: (
+                                    (area.client_width() - element.offset_width()).max(0),
+                                    (area.client_height() - element.offset_height()).max(0),
+                                ),
+                                position: None,
+                                element,
+                            });
 
-                            let on_mouse_move = ctx
-                                .link()
-                                .callback(move |e| CoplandMsg::DragWindowMove(window_id, e));
+                            let on_mouse_move =
+                                ctx.link().callback(move |e| CoplandMsg::DragWindowMove(e));
                             let listener =
                                 EventListener::new(&browser_window(), "mousemove", move |e| {
                                     let event = e.dyn_ref::<MouseEvent>().unwrap();
@@ -414,9 +434,8 @@ impl Component for Copland {
                                 });
                             self.mouse_up_listener = Some(listener);
 
-                            let on_touch_move = ctx
-                                .link()
-                                .callback(move |e| CoplandMsg::DragWindowMove(window_id, e));
+                            let on_touch_move =
+                                ctx.link().callback(move |e| CoplandMsg::DragWindowMove(e));
                             let listener =
                                 EventListener::new(&browser_window(), "touchmove", move |e| {
                                     let event = e.dyn_ref::<TouchEvent>().unwrap();
@@ -442,48 +461,50 @@ impl Component for Copland {
                 }
                 false
             }
-            CoplandMsg::DragWindowMove(window_id, e) => {
-                // log::info!("dragging window");
-                log::info!("{:?}", e);
-                if let Some(window) = self.windows.get_mut(&window_id) {
-                    if let Some(window_el) =
-                        document().get_element_by_id(&format!("window-{}", window_id))
-                    {
-                        let window_height = window_el.client_height();
-                        if let Some(window_area) = self.window_area.cast::<Element>() {
-                            let max_x = window_area.client_width() - window.width as i32;
-                            let max_y = window_area.client_height() - window_height;
-
-                            window.left = WindowPosition::Close(
-                                (e.client_x() + self.mouse_offset_x).min(max_x).max(0),
-                            );
-                            window.top = WindowPosition::Close(
-                                (e.client_y() + self.mouse_offset_y).min(max_y).max(0),
-                            );
-
-                            self.did_move = true;
-
-                            return true;
-                        }
+            CoplandMsg::DragWindowMove(e) => {
+                let Some(drag) = &mut self.drag else {
+                    return false;
+                };
+                let (left, top) = drag.origin;
+                let x = (left + e.client_x() - drag.pointer.0).clamp(0, drag.bounds.0);
+                let y = (top + e.client_y() - drag.pointer.1).clamp(0, drag.bounds.1);
+                if (x, y) != drag.position.unwrap_or(drag.origin) {
+                    let style = drag.element.style();
+                    if drag.position.is_none() {
+                        let _ = style.set_property("will-change", "translate");
                     }
+                    let _ =
+                        style.set_property("translate", &format!("{}px {}px", x - left, y - top));
+                    drag.position = Some((x, y));
                 }
                 false
             }
             CoplandMsg::DragWindowEnd(window_id) => {
-                log::info!("stopped dragging window");
                 self.mouse_move_listener = None;
                 self.mouse_up_listener = None;
                 self.touch_move_listener = None;
                 self.touch_up_listener = None;
 
-                if let WindowId::StickyNote(id) = window_id {
-                    if self.did_move {
+                let Some(drag) = self.drag.take() else {
+                    return false;
+                };
+                let Some((x, y)) = drag.position else {
+                    return false;
+                };
+                let style = drag.element.style();
+                let _ = style.remove_property("translate");
+                let _ = style.remove_property("will-change");
+
+                if let Some(window) = self.windows.get_mut(&window_id) {
+                    window.left = WindowPosition::Close(x);
+                    window.top = WindowPosition::Close(y);
+                    if let WindowId::StickyNote(id) = window_id {
                         Copland::update_sticky_note(id);
                     }
+                    true
+                } else {
+                    false
                 }
-                self.did_move = false;
-
-                false
             }
             CoplandMsg::MinimiseWindow(window_id) => {
                 log::info!("minimising window");
