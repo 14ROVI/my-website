@@ -3,18 +3,18 @@ use yew::{function_component, html, use_state, Callback, Html};
 #[function_component(PhotoViewer)]
 pub fn photo_viewer() -> Html {
     let images = vec![
-        "000005220003.jpg",
-        "000005220005.jpg",
-        "000006710020.jpg",
-        "000006710032.jpg",
-        "000101080016.png",
-        "000101080027.png",
-        "000101080035.png",
-        "000156840002.jpg",
-        "000156840009.jpg",
-        "A028792-R1-19-18A.JPG",
-        "cloud.jpg",
-        "PUNCH.png",
+        "000005220003.webp",
+        "000005220005.webp",
+        "000006710020.webp",
+        "000006710032.webp",
+        "000101080016.webp",
+        "000101080027.webp",
+        "000101080035.webp",
+        "000156840002.webp",
+        "000156840009.webp",
+        "A028792-R1-19-18A.webp",
+        "cloud.webp",
+        "PUNCH.webp",
     ];
 
     let photo_id = use_state(|| 0);
@@ -46,7 +46,7 @@ pub fn photo_viewer() -> Html {
                 // current photo
                 <div class="photo-path">
                 <span>{format!("C:/home/roan/photos/{}", photo)}</span><br/>
-                <img src={format!("assets/photo_gallery/{}", photo)}/>
+                <img src={format!("assets/photo_gallery/{}", photo)} alt={photo} decoding="async"/>
                 </div>
             </div>
             <div class="photo-controls">
@@ -65,7 +65,7 @@ pub fn photo_viewer() -> Html {
                                     let photo_id = photo_id.clone();
                                     Callback::from(move |_| photo_id.set(i))
                                 }}
-                                src={format!("assets/photo_gallery/{}", image)}
+                                src={format!("assets/photo_gallery/thumb/{}", image)} alt={image} decoding="async"
                             />
                         }).collect::<Html>()
                     }

@@ -239,6 +239,7 @@ film-list > div:last {
 .pp img {
     max-width: unset;
     max-height: 500px;
+    object-fit: contain;
 }
 .photo-window {
     display: flex;
@@ -278,6 +279,13 @@ film-list > div:last {
     overflow-y: hidden;
     height: 100px;
     gap: 5px;
+}
+.photo-selector img {
+    flex: 0 0 112px;
+    width: 112px;
+    height: 100%;
+    object-fit: contain;
+    cursor: pointer;
 }
 .photo-selector .selected {
     margin: 0 5px;
