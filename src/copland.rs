@@ -221,7 +221,7 @@ impl Component for Copland {
         let resize_browser = ctx.link().callback(|_| CoplandMsg::ResizeBrowser);
 
         spawn_local(async move {
-            let resp = Request::get("https://api.rovi.me/notes")
+            let resp = Request::get("https://api.rovi.me/notes/")
                 .send()
                 .await
                 .unwrap();
