@@ -149,7 +149,7 @@ impl Copland {
                 {onclick}
                 class={ classes!(focused) }
             >
-                <img class="title-bar-icon" src={window.icon.clone()} alt="button icon" />
+                <img class="title-bar-icon" src={window.id.icon()} alt="button icon" />
                 <span>{ window.title.clone() }</span>
             </button>
         }
@@ -575,6 +575,18 @@ impl Component for Copland {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let create_sticky = ctx.link().callback(|_| CoplandMsg::NewSticky);
+        let shortcuts = [
+            (WindowId::Home, "Home"),
+            (WindowId::AboutMe, "About Me"),
+            (WindowId::Projects, "Projects"),
+            (WindowId::PhotoViewer, "Photo Viewer"),
+            (WindowId::Paint, "Paint"),
+            (WindowId::Aquarium, "Shark Aquarium"),
+            (WindowId::Spotify, "Spotify"),
+            (WindowId::Films, "Letterboxd"),
+            (WindowId::SocialLinks, "Social Links"),
+            (WindowId::BackgroundSelector, "Wallpaper"),
+        ];
 
         html! {
             <div id="copland" class="copland">
@@ -588,6 +600,15 @@ impl Component for Copland {
                     class="window-area"
                     ref={self.window_area.clone()}
                 >
+                    <nav class="desktop-shortcuts" aria-label="Desktop shortcuts">
+                        {for shortcuts.into_iter().map(|(id, label)| html! {
+                            <button class="desktop-shortcut" onclick={Window::launcher(ctx.link(), id)}>
+                                <img src={id.icon()} alt="" width="32" height="32" draggable="false"/>
+                                <span>{label}</span>
+                            </button>
+                        })}
+                    </nav>
+
                     {
                         self.windows.values().map(|window| {
                             window.view(ctx.link(), self)

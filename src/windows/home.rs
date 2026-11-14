@@ -10,6 +10,7 @@ pub struct HomeWindowProps {
     pub open_projects: Callback<MouseEvent>,
     pub open_films: Callback<MouseEvent>,
     pub open_paint: Callback<MouseEvent>,
+    pub open_aquarium: Callback<MouseEvent>,
     pub open_photo_viewer: Callback<MouseEvent>,
 }
 
@@ -27,6 +28,7 @@ pub fn home(props: &HomeWindowProps) -> Html {
                 <li><a href="javascript:void(0);" onclick={&props.open_projects}>{ "My other projects.." }</a></li>
                 <li><a href="javascript:void(0);" onclick={&props.open_films}>{ "Check out my letterboxd" }</a></li>
                 <li><a href="javascript:void(0);" onclick={&props.open_photo_viewer}>{ "Look at my photos" }</a></li>
+                <li><a href="javascript:void(0);" onclick={&props.open_aquarium}>{ "Visit the Shark Aquarium" }</a></li>
                 <li><a href="javascript:void(0);" onclick={&props.open_paint}>{ "Draw something in Paint" }</a></li>
                 <li><a href="javascript:void(0);" onclick={&props.open_socials}>{ "Add all my social links ツ" }</a></li>
             </ul>

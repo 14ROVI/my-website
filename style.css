@@ -25,6 +25,56 @@ img {
     position: relative;
     flex: 1;
 }
+.desktop-shortcuts {
+    position: absolute;
+    inset: 8px auto auto 8px;
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(5, 64px);
+    grid-auto-columns: 80px;
+    gap: 4px;
+}
+.desktop-shortcuts .desktop-shortcut,
+.desktop-shortcuts .desktop-shortcut:not(:disabled):active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 4px;
+    min-width: 0;
+    background: transparent;
+    box-shadow: none;
+    cursor: pointer;
+    color: #fff;
+    text-align: center;
+}
+.desktop-shortcut img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+.desktop-shortcut span {
+    padding: 2px 4px;
+    background: #202020;
+    line-height: 1.2;
+}
+.desktop-shortcut:hover span,
+.desktop-shortcut:focus-visible span {
+    background: #000080;
+}
+.desktop-shortcuts .desktop-shortcut:focus-visible {
+    outline: 1px dotted #fff;
+    outline-offset: -2px;
+}
+@media (max-width: 700px), (max-height: 400px) {
+    .desktop-shortcuts {
+        right: 8px;
+        grid-template-rows: 64px;
+        overflow-x: auto;
+    }
+}
 video.background {
     position: fixed;
     right: 0;
@@ -317,3 +367,42 @@ film-list > div:last {
 .paint .status-bar-field { margin: 0; }
 .paint-surface { position: relative; }
 .paint-paper .paint-preview { position: absolute; inset: 0; background: transparent; pointer-events: none; }
+
+.shark-window { max-height: 100%; }
+.shark-window > .window-body { flex: 1; padding: 4px; }
+.shark-aquarium {
+    flex: 1;
+    display: grid;
+    grid-template: minmax(0, 1fr) auto / minmax(0, 1fr);
+    gap: 4px;
+}
+.shark-stage {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    place-items: center;
+    background:
+        radial-gradient(circle farthest-corner at var(--aquarium-light-x, 53%) var(--aquarium-light-y, 16%),
+            #4da6ab3d, #24647f21 48%, #24647f00),
+        linear-gradient(164deg, #142b3c, #0b1c30 50%, #080d1b);
+    color: #c8d9dc;
+    box-shadow: 1px 1px #fff, -1px -1px #404040;
+    overflow: hidden;
+}
+.shark-stage canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    cursor: grab;
+    touch-action: none;
+}
+.shark-stage canvas:active { cursor: grabbing; }
+.shark-stage canvas:focus-visible { outline: 2px dotted #c2dbe3; outline-offset: -3px; }
+.aquarium-status { z-index: 1; margin: 8px; }
+.shark-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.shark-controls span { margin-right: auto; padding: 3px 4px; }
+.shark-controls button { min-width: 58px; }

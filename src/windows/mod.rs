@@ -27,3 +27,8 @@ pub use photo_viewer::PhotoViewer;
 
 mod paint;
 pub use paint::Paint;
+
+#[cfg(target_arch = "wasm32")]
+mod aquarium;
+#[cfg(target_arch = "wasm32")]
+pub use aquarium::Aquarium;

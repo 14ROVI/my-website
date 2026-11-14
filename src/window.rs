@@ -4,8 +4,11 @@ use yew::html::Scope;
 use yew::{classes, html, Html};
 
 use crate::copland::{Copland, CoplandMsg, MoveEvent};
+#[cfg(target_arch = "wasm32")]
+use crate::windows::Aquarium;
 use crate::windows::{
-    AboutMe, BackgroundSelector, Films, Home, Paint, PhotoViewer, Projects, Socials, Spotify, StickyNote,
+    AboutMe, BackgroundSelector, Films, Home, Paint, PhotoViewer, Projects, Socials, Spotify,
+    StickyNote,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -34,8 +37,26 @@ pub enum WindowId {
     Films,
     PhotoViewer,
     Paint,
+    Aquarium,
     StickyNote(usize),
 }
+impl WindowId {
+    pub fn icon(self) -> &'static str {
+        match self {
+            Self::Home => "assets/icons/computer_explorer-5.png",
+            Self::AboutMe => "assets/icons/msg_information-0.png",
+            Self::Spotify => "assets/icons/spotify.svg",
+            Self::BackgroundSelector => "assets/icons/display_properties-2.png",
+            Self::SocialLinks => "assets/icons/netmeeting-0.png",
+            Self::Projects => "assets/icons/keyboard-5.png",
+            Self::Films => "assets/icons/camera3_vid-2.png",
+            Self::PhotoViewer | Self::Aquarium => "assets/icons/kodak_imaging-0.png",
+            Self::Paint => "assets/icons/paint_old-0.png",
+            Self::StickyNote(_) => "assets/icons/template_empty-5.png",
+        }
+    }
+}
+
 impl fmt::Display for WindowId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let id = match self {
@@ -47,6 +68,7 @@ impl fmt::Display for WindowId {
             Self::Projects => "Projects".to_string(),
             Self::Films => "Letterboxd".to_string(),
             Self::Paint => "Paint".to_string(),
+            Self::Aquarium => "Aquarium".to_string(),
             Self::PhotoViewer => "Photo Viewer".to_string(),
             Self::StickyNote(index) => format!("StickyNote({})", index),
         };
@@ -71,23 +93,39 @@ pub struct Window {
     pub left: WindowPosition,
     pub width: u32,
     pub height: Option<u32>,
-    pub icon: String,
     pub title: String,
     pub body: Html,
 }
 impl Window {
+    pub fn launcher(link: &Scope<Copland>, id: WindowId) -> yew::Callback<web_sys::MouseEvent> {
+        let scope = link.clone();
+        link.callback(move |_| {
+            let window = match id {
+                WindowId::AboutMe => Self::about_me(),
+                WindowId::Spotify => Self::spotify(&scope),
+                WindowId::BackgroundSelector => Self::background_selector(),
+                WindowId::SocialLinks => Self::socials(),
+                WindowId::Projects => Self::projects(),
+                WindowId::Films => Self::films(),
+                WindowId::PhotoViewer => Self::photo_viewer(),
+                WindowId::Paint => Self::paint(),
+                WindowId::Aquarium => Self::aquarium(),
+                WindowId::Home | WindowId::StickyNote(_) => return CoplandMsg::FocusWindow(id),
+            };
+            CoplandMsg::OpenWindow(window)
+        })
+    }
+
     pub fn home(link: &Scope<Copland>) -> Self {
-        let spotify_link = link.clone();
-        let open_spotify =
-            link.callback(move |_| CoplandMsg::OpenWindow(Self::spotify(&spotify_link)));
-        let open_about_me = link.callback(|_| CoplandMsg::OpenWindow(Self::about_me()));
-        let open_background =
-            link.callback(|_| CoplandMsg::OpenWindow(Self::background_selector()));
-        let open_socials = link.callback(|_| CoplandMsg::OpenWindow(Self::socials()));
-        let open_projects = link.callback(|_| CoplandMsg::OpenWindow(Self::projects()));
-        let open_films = link.callback(|_| CoplandMsg::OpenWindow(Self::films()));
-        let open_paint = link.callback(|_| CoplandMsg::OpenWindow(Self::paint()));
-        let open_photo_viewer = link.callback(|_| CoplandMsg::OpenWindow(Self::photo_viewer()));
+        let open_spotify = Self::launcher(link, WindowId::Spotify);
+        let open_about_me = Self::launcher(link, WindowId::AboutMe);
+        let open_background = Self::launcher(link, WindowId::BackgroundSelector);
+        let open_socials = Self::launcher(link, WindowId::SocialLinks);
+        let open_projects = Self::launcher(link, WindowId::Projects);
+        let open_films = Self::launcher(link, WindowId::Films);
+        let open_paint = Self::launcher(link, WindowId::Paint);
+        let open_aquarium = Self::launcher(link, WindowId::Aquarium);
+        let open_photo_viewer = Self::launcher(link, WindowId::PhotoViewer);
 
         Window {
             id: WindowId::Home,
@@ -98,10 +136,9 @@ impl Window {
             left: WindowPosition::Half,
             width: 400,
             height: None,
-            icon: "assets/icons/computer_explorer-5.png".to_string(),
             title: "Home".to_string(),
             body: html! {
-                <Home {open_background} {open_spotify} {open_about_me} {open_socials} {open_projects} {open_films} {open_photo_viewer} {open_paint}></Home>
+                <Home {open_background} {open_spotify} {open_about_me} {open_socials} {open_projects} {open_films} {open_photo_viewer} {open_paint} {open_aquarium}></Home>
             },
         }
     }
@@ -116,7 +153,6 @@ impl Window {
             left: WindowPosition::Half,
             width: 300,
             height: None,
-            icon: "assets/icons/msg_information-0.png".to_string(),
             title: "About Me".to_string(),
             body: html! {
                 <AboutMe></AboutMe>
@@ -137,7 +173,6 @@ impl Window {
             left: WindowPosition::Far,
             width: 300,
             height: None,
-            icon: "assets/icons/spotify.svg".to_string(),
             title: "Spotify".to_string(),
             body: html! {
                 <Spotify {resize_window}></Spotify>
@@ -155,7 +190,6 @@ impl Window {
             left: WindowPosition::Close(0),
             width: 300,
             height: None,
-            icon: "assets/icons/kodak_imaging-0.png".to_string(),
             title: "Select Background".to_string(),
             body: html! {
                 <BackgroundSelector></BackgroundSelector>
@@ -173,7 +207,6 @@ impl Window {
             left: WindowPosition::Half,
             width: 250,
             height: None,
-            icon: "assets/icons/netmeeting-0.png".to_string(),
             title: "Social links ツ".to_string(),
             body: html! {
                 <Socials></Socials>
@@ -191,7 +224,6 @@ impl Window {
             left: WindowPosition::Half,
             width: 350,
             height: None,
-            icon: "assets/icons/keyboard-5.png".to_string(),
             title: "(Some) of my projects".to_string(),
             body: html! {
                 <Projects></Projects>
@@ -209,7 +241,6 @@ impl Window {
             left: WindowPosition::Half,
             width: 520,
             height: Some(400),
-            icon: "assets/icons/camera3_vid-2.png".to_string(),
             title: "Letterboxd".to_string(),
             body: html! {
                 <Films></Films>
@@ -227,11 +258,29 @@ impl Window {
             top: WindowPosition::Close(y),
             width: 200,
             height: None,
-            icon: "assets/icons/template_empty-5.png".to_string(),
             title: format!("sticky note {id}"),
             body: html! {
                 <StickyNote {id} {content} {created_at}></StickyNote>
             },
+        }
+    }
+
+    fn aquarium() -> Self {
+        #[cfg(target_arch = "wasm32")]
+        let body = html! { <Aquarium src="assets/models/shark-aquarium.glb" /> };
+        #[cfg(not(target_arch = "wasm32"))]
+        let body = Html::default();
+        Window {
+            id: WindowId::Aquarium,
+            state: WindowState::Open,
+            close: WindowClose::Close,
+            z_index: 0,
+            left: WindowPosition::Half,
+            top: WindowPosition::Half,
+            width: 800,
+            height: Some(540),
+            title: "Shark Aquarium".to_string(),
+            body,
         }
     }
 
@@ -245,7 +294,6 @@ impl Window {
             top: WindowPosition::Half,
             width: 780,
             height: None,
-            icon: "assets/icons/kodak_imaging-0.png".to_string(),
             title: "Shared canvas - Microsoft Paint".to_string(),
             body: html! { <Paint /> },
         }
@@ -261,7 +309,6 @@ impl Window {
             top: WindowPosition::Half,
             width: 500,
             height: None,
-            icon: "assets/icons/kodak_imaging-0.png".to_string(),
             title: "Photo Viewer".to_string(),
             body: html! {
                 <PhotoViewer></PhotoViewer>
@@ -314,6 +361,7 @@ impl Window {
 
         let window_class = match self.id {
             WindowId::Paint => vec!["window", "paint-window"],
+            WindowId::Aquarium => vec!["window", "shark-window"],
             WindowId::StickyNote(_) => vec!["window", "sticky-note"],
             _ => vec!["window"],
         };
@@ -333,7 +381,7 @@ impl Window {
                     ontouchstart={link.callback(move |e| CoplandMsg::DragWindowStart(id, MoveEvent::TouchEvent(e)))}
                 >
                     <div class="title-bar-text-icon">
-                        <img class="title-bar-icon" src={self.icon.clone()} alt="title bar icon" />
+                        <img class="title-bar-icon" src={id.icon()} alt="title bar icon" />
                         <div class="title-bar-text">{ self.title.clone() }</div>
                     </div>
                     <div class="title-bar-controls">
