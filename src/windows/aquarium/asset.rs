@@ -1,4 +1,4 @@
-use glam::{Mat4, Quat, Vec3};
+use glam::{Mat3, Mat4, Quat, Vec3};
 use gltf::animation::{util::ReadOutputs, Interpolation};
 
 pub struct Asset {
@@ -6,6 +6,8 @@ pub struct Asset {
     pub order: Vec<usize>,
     pub skins: Vec<Skin>,
     pub tracks: Vec<Track>,
+    turning_pose: Vec<(usize, Quat)>,
+    swim_roots: Vec<usize>,
 }
 
 #[derive(Clone, Copy)]
@@ -164,11 +166,36 @@ impl Asset {
                 track.duration = duration;
             }
         }
+        // The baked paths circle to the right. Curve the body into that turn,
+        // with the head leading and the tail trailing, beneath the swim cycle.
+        let turning_pose = gltf
+            .nodes()
+            .filter_map(|node| {
+                let angle: f32 = match node.name()? {
+                    "Head" => -0.07,
+                    "Spine 01" => 0.035,
+                    "Spine 02" => 0.06,
+                    "Spine 03" | "Spine 04" => 0.075,
+                    "Spine 05" => 0.06,
+                    "Spine 06" => 0.045,
+                    _ => return None,
+                };
+                // Bone-local Z is the shark's vertical axis.
+                Some((node.index(), Quat::from_rotation_z(angle)))
+            })
+            .collect();
+        let swim_roots = gltf
+            .nodes()
+            .filter(|node| node.name().is_some_and(|name| name.ends_with(" | swim")))
+            .map(|node| node.index())
+            .collect();
         Ok(Self {
             nodes,
             order,
             skins,
             tracks,
+            turning_pose,
+            swim_roots,
         })
     }
 
@@ -198,6 +225,20 @@ impl Asset {
                 }
                 Values::Scale(values) => node.scale = values[i].lerp(values[j], weight),
             }
+        }
+        for &(index, turn) in &self.turning_pose {
+            posed[index].rotation = (posed[index].rotation * turn).normalize();
+        }
+        for &index in &self.swim_roots {
+            let node = &mut posed[index];
+            // Keep the sampled heading and pitch, but replace the baked roll
+            // so it cannot overpower the inward bank during the swim cycle.
+            let along = node.rotation * Vec3::X;
+            let side = along.cross(Vec3::Y).normalize();
+            let up = side.cross(along);
+            node.rotation = (Quat::from_mat3(&Mat3::from_cols(along, up, side))
+                * Quat::from_rotation_x(-0.06))
+            .normalize();
         }
         for &index in &self.order {
             let node = posed[index];
