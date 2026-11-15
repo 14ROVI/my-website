@@ -27,11 +27,12 @@ img {
 }
 .desktop-shortcuts {
     position: absolute;
-    inset: 8px auto auto 8px;
+    inset: 8px;
     display: grid;
     grid-auto-flow: column;
-    grid-template-rows: repeat(5, 64px);
+    grid-template-rows: repeat(auto-fill, 76px);
     grid-auto-columns: 80px;
+    align-content: start;
     gap: 4px;
 }
 .desktop-shortcuts .desktop-shortcut,
@@ -67,13 +68,6 @@ img {
 .desktop-shortcuts .desktop-shortcut:focus-visible {
     outline: 1px dotted #fff;
     outline-offset: -2px;
-}
-@media (max-width: 700px), (max-height: 400px) {
-    .desktop-shortcuts {
-        right: 8px;
-        grid-template-rows: 64px;
-        overflow-x: auto;
-    }
 }
 video.background {
     position: fixed;
