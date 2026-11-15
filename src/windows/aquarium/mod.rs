@@ -56,11 +56,10 @@ impl Orbit {
     }
 
     fn camera(&self, aspect: f32, direction: Vec3) -> (Mat4, Vec3) {
-        let eye = direction * CAMERA_DISTANCE;
+        let eye = direction * self.distance;
         let focal_scale =
             (aspect / 272.0).min(1.0 / 195.0) * (252.0 - 28.0 * direction.y.abs().powi(3));
-        let zoom = CAMERA_DISTANCE / self.distance;
-        let vertical_fov = 2.0 * (0.5 / (focal_scale * zoom)).atan();
+        let vertical_fov = 2.0 * (0.5 / focal_scale).atan();
         let projection = Mat4::perspective_rh_gl(vertical_fov, aspect, 0.12, 125.0);
         (projection * Mat4::look_at_rh(eye, Vec3::ZERO, Vec3::Y), eye)
     }
@@ -382,48 +381,15 @@ pub fn aquarium(props: &AquariumProps) -> Html {
             redraw(&playback);
         })
     };
-    let zoom = |steps| {
-        let playback = playback.clone();
-        Callback::from(move |_| {
-            playback.borrow_mut().orbit.zoom(steps);
-            redraw(&playback);
-        })
-    };
-    let reset = {
-        let playback = playback.clone();
-        Callback::from(move |_| {
-            playback.borrow_mut().orbit = Orbit::default();
-            redraw(&playback);
-        })
-    };
-    let toggle = {
-        let (playback, playing) = (playback.clone(), playing.clone());
-        Callback::from(move |_| {
-            let mut state = playback.borrow_mut();
-            state.playing = !state.playing;
-            state.last_frame = None;
-            playing.set(state.playing);
-            drop(state);
-            redraw(&playback);
-        })
-    };
     html! {
         <div class="shark-aquarium">
             <div class="shark-stage" ref={stage}>
                 <canvas ref={canvas} tabindex="0" aria-label="Five rigged sharks swimming in circles"
-                    aria-describedby="aquarium-help"
                     aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Plus Minus"
                     onpointerdown={grab} onpointermove={drag} onlostpointercapture={release} onkeydown={keys} />
                 if let Some(message) = *status {
                     <p class="aquarium-status" role="status">{message}</p>
                 }
-            </div>
-            <div class="shark-controls">
-                <span id="aquarium-help">{"Drag to orbit · Scroll to zoom"}</span>
-                <button aria-label="Zoom out" onclick={zoom(1.0)} disabled={status.is_some()}>{"−"}</button>
-                <button aria-label="Zoom in" onclick={zoom(-1.0)} disabled={status.is_some()}>{"+"}</button>
-                <button onclick={reset} disabled={status.is_some()}>{"Reset view"}</button>
-                <button onclick={toggle} disabled={status.is_some()}>{if *playing { "Pause" } else { "Play" }}</button>
             </div>
         </div>
     }

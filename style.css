@@ -373,8 +373,7 @@ film-list > div:last {
 .shark-aquarium {
     flex: 1;
     display: grid;
-    grid-template: minmax(0, 1fr) auto / minmax(0, 1fr);
-    gap: 4px;
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
 }
 .shark-stage {
     position: relative;
@@ -403,6 +402,3 @@ film-list > div:last {
 .shark-stage canvas:active { cursor: grabbing; }
 .shark-stage canvas:focus-visible { outline: 2px dotted #c2dbe3; outline-offset: -3px; }
 .aquarium-status { z-index: 1; margin: 8px; }
-.shark-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
-.shark-controls span { margin-right: auto; padding: 3px 4px; }
-.shark-controls button { min-width: 58px; }

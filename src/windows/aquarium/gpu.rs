@@ -5,8 +5,7 @@ use wasm_bindgen::JsCast;
 use web_sys::{HtmlCanvasElement, WebGl2RenderingContext};
 
 pub const MAX_JOINTS: usize = 32;
-const WATER_PARTICLES: usize = 187;
-const WATER_MOTES: usize = 210;
+const WATER_PARTICLES: usize = 748;
 
 const VERTEX: &str = "#version 300 es
 layout(location=0) in vec3 position;
@@ -53,9 +52,11 @@ void main() {
     float rim = 1.0 - max(dot(n, view), 0.0);
     float band = max(sin(seconds * 1.15 + surface_position.x * 1.6
         + sin(surface_position.z - seconds * 0.4) * 1.7), 0.0);
+    // Fade the overhead wave light out on the sides and exclude downward-facing surfaces.
+    float wave_light = pow(band, 4.0) * 0.21 * smoothstep(0.0, 0.35, smooth_normal.y);
     float diffuse = dot(n, normalize(vec3(-0.37, 0.87, 0.32)));
     diffuse = mix(diffuse, floor(diffuse * 7.0 + 0.5) / 7.0, 0.72);
-    float exposure = clamp(0.77 + diffuse * 0.49 + depth * 0.011 + pow(band, 4.0) * 0.21, 0.43, 1.34);
+    float exposure = clamp(0.77 + diffuse * 0.49 + depth * 0.011 + wave_light, 0.43, 1.34);
     vec3 lit = mix(base * exposure, vec3(120.0, 205.0, 231.0) / 255.0, rim * rim * 0.14);
     if (glowing_spots) {
         float back = smoothstep(0.1, 0.45, cos(texcoord.y * 6.28318));
@@ -71,33 +72,21 @@ layout(location=1) in vec3 style_seed;
 uniform mat4 camera;
 uniform vec3 direction;
 uniform float seconds;
-uniform bool motes;
 out vec3 colour;
 out float opacity, bubble;
 void main() {
-    if (motes) {
-        vec2 uv = fract(position_seed.xy + direction.xy * vec2(0.08, -0.12)
-            + seconds * vec2(0.006, -0.013));
-        gl_Position = vec4(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, 0.0, 1.0);
-        gl_PointSize = 1.0;
-        colour = vec3(140.0, 198.0, 217.0) / 255.0;
-        opacity = 0.04 + style_seed.x * style_seed.x * 0.24;
-        bubble = 0.0;
-        return;
-    }
-    float rise = fract(style_seed.x + seconds * (0.045 + position_seed.z * 0.069));
-    float stream = float(gl_VertexID % 9) * 0.698132;
-    float radius = 5.2 + float(gl_VertexID % 4) * 3.0;
-    float scatter = 1.2 + rise * 1.6;
-    vec3 p = vec3(cos(stream) * radius + (position_seed.x - 0.5) * scatter * 2.0
+    float rise = fract(style_seed.x + seconds * (0.045 + position_seed.z * 0.069) * (22.8 / 72.0));
+    // Independent positions and initial rise phases fill the water from the first frame.
+    vec3 p = vec3((position_seed.x - 0.5) * 80.0
         + sin(rise * 8.0 + position_seed.w * 6.283185) * 0.5,
-        rise * 22.8 - 11.4, sin(stream) * radius + (position_seed.y - 0.5) * scatter * 2.0);
+        rise * 72.0 - 36.0, (position_seed.y - 0.5) * 80.0);
     gl_Position = camera * vec4(p, 1.0);
     float depth = dot(direction, p);
-    float size = (pow(style_seed.z, 4.0) * 2.8 + 0.35) * (1.0 + depth * 0.03);
-    bubble = step(1.35, size);
-    gl_PointSize = mix(1.0, clamp(floor(size + 0.5) + 2.0, 3.0, 7.0), bubble);
-    float fade = min(1.0, min(rise * 9.0, (1.0 - rise) * 8.0));
+    float size = (3.0 + style_seed.z * 2.0) * 24.5 / max(gl_Position.w, 1.0);
+    bubble = step(0.72, style_seed.z);
+    gl_PointSize = mix(1.0, clamp(floor(size + 0.5), 3.0, 7.0), bubble);
+    float fade = min(1.0, min(rise * 9.0, (1.0 - rise) * 8.0))
+        * smoothstep(0.5, 2.0, gl_Position.w);
     float gleam = fade * (0.18 + style_seed.y * 0.59) * (0.8 + depth * 0.02);
     colour = mix(vec3(22.0, 49.0, 66.0), vec3(172.0, 226.0, 234.0), clamp(gleam, 0.0, 1.0)) / 255.0;
     opacity = smoothstep(0.04, 0.12, gleam);
@@ -305,11 +294,9 @@ pub struct Renderer {
     materials: Vec<Material>,
     water_program: glow::Program,
     water_array: glow::VertexArray,
-    mote_array: glow::VertexArray,
     water_camera: Option<glow::UniformLocation>,
     water_time: Option<glow::UniformLocation>,
     water_direction: Option<glow::UniformLocation>,
-    water_motes: Option<glow::UniformLocation>,
     asset: Asset,
     posed: Vec<Node>,
     world: Vec<Mat4>,
@@ -342,7 +329,6 @@ impl Renderer {
         let water_camera = unsafe { gpu.gl.get_uniform_location(water_program, "camera") };
         let water_time = unsafe { gpu.gl.get_uniform_location(water_program, "seconds") };
         let water_direction = unsafe { gpu.gl.get_uniform_location(water_program, "direction") };
-        let water_motes = unsafe { gpu.gl.get_uniform_location(water_program, "motes") };
         let white = gpu.texture(1, 1, &[255; 4])?;
         let mut textures = Vec::new();
         for image in model.images() {
@@ -476,7 +462,6 @@ impl Renderer {
             return Err("The GLB scene contains no meshes.".into());
         }
         let water_array = Self::water_array(&mut gpu, WATER_PARTICLES, 19, [0, 1, 2, 3, 4, 5, 6])?;
-        let mote_array = Self::water_array(&mut gpu, WATER_MOTES, 31, [0, 2, 0, 0, 5, 0, 0])?;
         unsafe {
             gpu.gl.bind_vertex_array(None);
             gpu.gl.enable(glow::DEPTH_TEST);
@@ -503,11 +488,9 @@ impl Renderer {
             materials,
             water_program,
             water_array,
-            mote_array,
             water_camera,
             water_time,
             water_direction,
-            water_motes,
             asset,
             posed,
             world,
@@ -527,8 +510,12 @@ impl Renderer {
             .map(|i| {
                 offsets.map(|offset| {
                     let seed = i * stride + offset;
-                    let mixed = seed.wrapping_mul(747_796_405).wrapping_add(2_891_336_453);
-                    (mixed.rotate_left(13).wrapping_mul(277_803_737) >> 24) as f32 / 255.0
+                    let mut mixed = seed ^ (seed >> 16);
+                    mixed = mixed.wrapping_mul(0x7feb_352d);
+                    mixed ^= mixed >> 15;
+                    mixed = mixed.wrapping_mul(0x846c_a68b);
+                    mixed ^= mixed >> 16;
+                    (mixed >> 8) as f32 / 16_777_216.0
                 })
             })
             .collect();
@@ -561,20 +548,6 @@ impl Renderer {
         unsafe {
             gl.viewport(0, 0, width, height);
             gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
-            gl.disable(glow::DEPTH_TEST);
-            gl.enable(glow::BLEND);
-            gl.use_program(Some(self.water_program));
-            let direction = eye.normalize();
-            gl.uniform_3_f32(
-                self.water_direction.as_ref(),
-                direction.x,
-                direction.y,
-                direction.z,
-            );
-            gl.uniform_1_f32(self.water_time.as_ref(), seconds);
-            gl.uniform_1_i32(self.water_motes.as_ref(), 1);
-            gl.bind_vertex_array(Some(self.mote_array));
-            gl.draw_arrays(glow::POINTS, 0, WATER_MOTES as i32);
             gl.disable(glow::BLEND);
             gl.enable(glow::DEPTH_TEST);
             gl.use_program(Some(self.program));
@@ -610,12 +583,19 @@ impl Renderer {
             gl.enable(glow::BLEND);
             gl.depth_mask(false);
             gl.use_program(Some(self.water_program));
+            let direction = eye.normalize();
+            gl.uniform_3_f32(
+                self.water_direction.as_ref(),
+                direction.x,
+                direction.y,
+                direction.z,
+            );
+            gl.uniform_1_f32(self.water_time.as_ref(), seconds);
             gl.uniform_matrix_4_f32_slice(
                 self.water_camera.as_ref(),
                 false,
                 &camera.to_cols_array(),
             );
-            gl.uniform_1_i32(self.water_motes.as_ref(), 0);
             gl.bind_vertex_array(Some(self.water_array));
             gl.draw_arrays(glow::POINTS, 0, WATER_PARTICLES as i32);
             gl.depth_mask(true);
