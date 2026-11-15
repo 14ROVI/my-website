@@ -74,7 +74,7 @@ struct Player {
     frame: Option<AnimationFrame>,
     orbit: Orbit,
     light_direction: Option<Vec3>,
-    pointer: Option<(i32, i32, i32)>,
+    pointers: Vec<(i32, i32, i32)>,
     seconds: f32,
     last_frame: Option<f64>,
     playing: bool,
@@ -320,12 +320,20 @@ pub fn aquarium(props: &AquariumProps) -> Html {
         let playback = playback.clone();
         Callback::from(move |event: PointerEvent| {
             let mut state = playback.borrow_mut();
-            if event.button() != 0 || state.pointer.is_some() {
+            if event.button() != 0
+                || state.pointers.len() == 2
+                || state
+                    .pointers
+                    .iter()
+                    .any(|(id, _, _)| *id == event.pointer_id())
+            {
                 return;
             }
             let canvas = event.target_unchecked_into::<HtmlCanvasElement>();
             if canvas.set_pointer_capture(event.pointer_id()).is_ok() {
-                state.pointer = Some((event.pointer_id(), event.client_x(), event.client_y()));
+                state
+                    .pointers
+                    .push((event.pointer_id(), event.client_x(), event.client_y()));
             }
         })
     };
@@ -333,17 +341,29 @@ pub fn aquarium(props: &AquariumProps) -> Html {
         let playback = playback.clone();
         Callback::from(move |event: PointerEvent| {
             let mut state = playback.borrow_mut();
-            let Some((id, x, y)) = state.pointer else {
+            let Some(index) = state
+                .pointers
+                .iter()
+                .position(|(id, _, _)| *id == event.pointer_id())
+            else {
                 return;
             };
-            if id != event.pointer_id() {
-                return;
+            let (_, x, y) = state.pointers[index];
+            let other = state.pointers.get(1 - index).copied();
+            state.pointers[index] = (event.pointer_id(), event.client_x(), event.client_y());
+            if let Some((_, other_x, other_y)) = other {
+                let previous = (x as f32 - other_x as f32).hypot(y as f32 - other_y as f32);
+                let current = (event.client_x() as f32 - other_x as f32)
+                    .hypot(event.client_y() as f32 - other_y as f32);
+                if previous > 0.0 && current > 0.0 {
+                    state.orbit.zoom((previous / current).ln() / 1.2_f32.ln());
+                }
+            } else {
+                state.orbit.rotate(
+                    (x - event.client_x()) as f32 * 0.011,
+                    (event.client_y() - y) as f32 * 0.011,
+                );
             }
-            state.orbit.rotate(
-                (x - event.client_x()) as f32 * 0.011,
-                (event.client_y() - y) as f32 * 0.011,
-            );
-            state.pointer = Some((id, event.client_x(), event.client_y()));
             drop(state);
             redraw(&playback);
         })
@@ -352,12 +372,9 @@ pub fn aquarium(props: &AquariumProps) -> Html {
         let playback = playback.clone();
         Callback::from(move |event: PointerEvent| {
             let mut state = playback.borrow_mut();
-            if state
-                .pointer
-                .is_some_and(|(id, _, _)| id == event.pointer_id())
-            {
-                state.pointer = None;
-            }
+            state
+                .pointers
+                .retain(|(id, _, _)| *id != event.pointer_id());
         })
     };
     let keys = {
@@ -386,7 +403,8 @@ pub fn aquarium(props: &AquariumProps) -> Html {
             <div class="shark-stage" ref={stage}>
                 <canvas ref={canvas} tabindex="0" aria-label="Five rigged sharks swimming in circles"
                     aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Plus Minus"
-                    onpointerdown={grab} onpointermove={drag} onlostpointercapture={release} onkeydown={keys} />
+                    onpointerdown={grab} onpointermove={drag} onpointerup={&release}
+                    onpointercancel={&release} onlostpointercapture={&release} onkeydown={keys} />
                 if let Some(message) = *status {
                     <p class="aquarium-status" role="status">{message}</p>
                 }
